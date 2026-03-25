@@ -18,7 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, Bug, CheckCircle2, ClipboardList, Lightbulb, Loader2, Sparkles } from "lucide-react";
+import LevelCelebration from "@/components/animate-ui/LevelCelebration";
 
 const LearnLevel = () => {
   const { levelId } = useParams<{ levelId: string }>();
@@ -35,6 +36,8 @@ const LearnLevel = () => {
   const [busy, setBusy] = useState(false);
   const startedRef = useRef(false);
   const completedRef = useRef(false);
+  const [celebrationTrigger, setCelebrationTrigger] = useState(0);
+  const [celebrationSubtitle, setCelebrationSubtitle] = useState<string | null>(null);
 
   useEffect(() => {
     if (level) setCode(level.starterCode);
@@ -183,6 +186,9 @@ const LearnLevel = () => {
     if (!alreadyCompletedLevel) {
       const firstTry = prevFail === 0 && submitCount === 1;
       const points = POINTS_PER_LEVEL + (firstTry ? FIRST_TRY_BONUS : 0);
+      const subtitle = `+${points} punten${firstTry ? " (bonus eerste poging)" : ""}`;
+      setCelebrationSubtitle(subtitle);
+      setCelebrationTrigger((t) => t + 1);
 
       const { data: successes } = await supabase
         .from("level_attempts")
@@ -226,10 +232,13 @@ const LearnLevel = () => {
       await fetchUserProfile(user.id);
       toast({
         title: "Level voltooid",
-        description: `+${points} punten${firstTry ? " (bonus eerste poging)" : ""}`,
+        description: subtitle,
       });
 
-      if (levelId === "7") navigate("/learn/sus");
+      if (levelId === "7") {
+        // Laat de celebration kort "landen" voordat je naar SUS wordt gestuurd.
+        setTimeout(() => navigate("/learn/sus"), 900);
+      }
     } else {
       toast({
         title: "Opgelost",
@@ -244,6 +253,11 @@ const LearnLevel = () => {
 
   return (
     <MainLayout contentMaxWidthClass="max-w-7xl">
+      <LevelCelebration
+        trigger={celebrationTrigger}
+        title={`Level ${level.id} compleet!`}
+        subtitle={celebrationSubtitle ?? undefined}
+      />
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate("/learn")}>
@@ -261,10 +275,25 @@ const LearnLevel = () => {
           <div className="space-y-4">
             <Card className="vercel-card">
               <CardHeader>
-                <CardTitle className="text-base">Python-hint</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-vercel-purple" /> Missie
+                </CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-3">
-                <p>{level.pythonHint}</p>
+                <p>{level.mission}</p>
+                <div className="text-xs text-muted-foreground/90 bg-secondary/30 rounded-md p-3">
+                  <span className="font-medium">Fun fact:</span> {level.funFact}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="vercel-card">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 text-vercel-purple" /> Checklist
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
                 <ul className="list-disc pl-5 space-y-1">
                   {level.objectives.map((o) => (
                     <li key={o}>{o}</li>
@@ -272,6 +301,38 @@ const LearnLevel = () => {
                 </ul>
               </CardContent>
             </Card>
+
+            <Card className="vercel-card">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-vercel-purple" /> Python ↔ COBOL
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground space-y-3">
+                <p>{level.pythonHint}</p>
+                <p className="text-xs text-muted-foreground/90">
+                  PoC-validatie is heuristisch (pattern/regex). Het doel is onderzoek naar leer-effici-ency,
+                  niet “echte compile-accuracy”.
+                </p>
+              </CardContent>
+            </Card>
+
+            {level.commonMistakes.length > 0 ? (
+              <Card className="vercel-card">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Bug className="h-4 w-4 text-vercel-purple" /> Veelgemaakte fouten
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  <ul className="list-disc pl-5 space-y-1">
+                    {level.commonMistakes.map((m) => (
+                      <li key={m}>{m}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ) : null}
             {completed && (
               <Alert>
                 <CheckCircle2 className="h-4 w-4" />

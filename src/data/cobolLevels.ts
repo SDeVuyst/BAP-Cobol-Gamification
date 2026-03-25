@@ -23,6 +23,9 @@ export interface CobolLevelDefinition {
   summary: string;
   pythonHint: string;
   objectives: string[];
+  mission: string;
+  funFact: string;
+  commonMistakes: string[];
   starterCode: string;
 }
 
@@ -39,6 +42,16 @@ export const COBOL_LEVELS: CobolLevelDefinition[] = [
       "Bevat ENVIRONMENT DIVISION.",
       "Bevat DATA DIVISION.",
       "Bevat PROCEDURE DIVISION.",
+      "Heeft een `STOP RUN.` aan het eind van je run.",
+    ],
+    mission:
+      "Vandaag leer je hoe COBOL je dwingt tot structuur. Je bouwt de “skelet” waarin de rest van je programma veilig kan groeien.",
+    funFact:
+      "In COBOL is de volgorde van divisions niet alleen stijl — het is een contract met de parser.",
+    commonMistakes: [
+      "Je vergeet `PROCEDURE DIVISION.` of schrijft het verkeerd (bijv. zonder DIVISION).",
+      "Je mist `STOP RUN.` waardoor je flow onduidelijk blijft.",
+      "Je zet DATA voordat ENVIRONMENT staat (volgorde-mismatch).",
     ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. HELLO.
@@ -60,6 +73,16 @@ export const COBOL_LEVELS: CobolLevelDefinition[] = [
       "Minstens één PIC of PICTURE met 9.",
       "Minstens één met X.",
       "Minstens één die V bevat (bijv. 99V99).",
+      "Laat ten minste 1 veld zien binnen een 01-structuur (05 onder 01).",
+    ],
+    mission:
+      "Je maakt opslag “compile-time duidelijk”. PIC vertelt COBOL hoe het geheugen jouw data moet vasthouden.",
+    funFact:
+      "PIC `V` betekent implied decimal: er wordt geen “decimaalteken” opgeslagen, maar de positie ervan wordt afgeleid.",
+    commonMistakes: [
+      "Je gebruikt `VALUE` in plaats van `PIC` voor het opslagformaat.",
+      "Je zet `PIC X` als numeriek (of andersom) en mist vervolgens verwachte output.",
+      "Je vergeet dat `V` cijfers verwacht om eromheen te bouwen (bv. `99V99`).",
     ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. PICDEMO.
@@ -84,6 +107,15 @@ export const COBOL_LEVELS: CobolLevelDefinition[] = [
       "Bevat minstens één 05 onder een record.",
       "Optie: standalone 77-niveau (mag ook via 01/05).",
     ],
+    mission:
+      "Je leert data structureren als een ladder: 01 bovenaan, 05 als velden, en 77 voor extra elementen.",
+    funFact:
+      "Level-nummers zijn semantiek + structuur: ze helpen COBOL om je record layout te begrijpen.",
+    commonMistakes: [
+      "05 staat buiten een 01 (of je zet 05 direct “los”).",
+      "77 wordt gebruikt, maar heeft geen duidelijke rol/plaats in je record.",
+      "Je gebruikt veel levels maar zonder hiërarchie (lastig te lezen).",
+    ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. HIERARCHY.
        DATA DIVISION.
@@ -103,6 +135,15 @@ export const COBOL_LEVELS: CobolLevelDefinition[] = [
     pythonHint:
       "Python gebruikt inspringing; COBOL gebruikt expliciete END-IF — vergelijkbaar met het vermijden van else-drift in geneste ifs.",
     objectives: ["Bevat IF.", "Bevat END-IF.", "Bevat minstens één ELSE."],
+    mission:
+      "Je bouwt een beslissing die altijd netjes sluit. In COBOL is een goede IF vooral: correct ingekaderd door END-IF.",
+    funFact:
+      "END-IF is je scope-marker: zo voorkom je dat je logica per ongeluk “doorloopt”.",
+    commonMistakes: [
+      "Je vergeet `END-IF` (dan ‘weet’ COBOL niet waar je beslissing eindigt).",
+      "`ELSE` staat buiten de IF (plaatsing-fout).",
+      "Voorwaardes missen quotes rond literal strings (bv. `\"Y\"`).",
+    ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. BRANCH.
        DATA DIVISION.
@@ -124,6 +165,15 @@ export const COBOL_LEVELS: CobolLevelDefinition[] = [
     pythonHint:
       "Een `for i in range` of `while`-lus wordt vaak PERFORM VARYING ... FROM ... BY ... UNTIL conditie.",
     objectives: ["Bevat PERFORM VARYING.", "Bevat UNTIL."],
+    mission:
+      "Loops in COBOL zijn expliciet: jij kiest control variable + exit-conditie. Je vertaalt het ‘itereren’ mindset naar PERFORM.",
+    funFact:
+      "`BY` bepaalt hoe je control variable verandert — zonder BY is je ‘progress’ onduidelijk.",
+    commonMistakes: [
+      "Spelfout in UNTIL (bv. ONTIL).",
+      "Je gebruikt PERFORM VARYING, maar mist je END-PERFORM afsluiting.",
+      "Je exit-conditie is te breed/geen logische vergelijking (zoals `UNTIL TRUE`).",
+    ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. LOOPS.
        DATA DIVISION.
@@ -146,6 +196,15 @@ export const COBOL_LEVELS: CobolLevelDefinition[] = [
       "Definieer een paragraafnaam (kolom 8+) zoals VERWERK.",
       "Roep die aan met PERFORM (niet alleen PERFORM VARYING).",
     ],
+    mission:
+      "Je maakt code herbruikbaar. Met paragrafen laat je je programma netter aanvoelen, zoals functies in moderne talen.",
+    funFact:
+      "`PERFORM <paragraaf>` is letterlijk “voer dit blok uit” — zonder dat je een nieuwe procedure hoeft te schrijven.",
+    commonMistakes: [
+      "Je definieert de paragraph label zonder punt (bv. `VERWERK` i.p.v. `VERWERK.`).",
+      "Je roept de paragraaf verkeerd aan (typo in naam of vergeet PERFORM).",
+      "Je plaatst de paragraafsectie op een rare plek (heuristiek checkt globaal op PROCEDURE DIVISION).",
+    ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. PARAS.
        PROCEDURE DIVISION.
@@ -164,6 +223,15 @@ export const COBOL_LEVELS: CobolLevelDefinition[] = [
     objectives: [
       "Bevat FILE STATUS of de letters FS (in context FILE-CONTROL of record).",
       "Bevat de waarde 35 als literal of in een vergelijking.",
+    ],
+    mission:
+      "Je maakt je programma robuuster. Als een bestand niet gevonden wordt, vang je dat op met FILE STATUS en geef je de juiste reactie.",
+    funFact:
+      "FILE STATUS is vaak een 2-char code. `'35'` wordt heel vaak gebruikt als ‘file not found’-case in leercontexten.",
+    commonMistakes: [
+      "Je declareert WS-STATUS, maar vergelijkt de status niet in een IF.",
+      "Je vergelijkt met 35 zonder quotes (heuristiek verwacht `'35'` of `\"35\"`).",
+      "Je check’t FILE STATUS, maar vergeet END-IF (je logica blijft hangen).",
     ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. FILECHK.
