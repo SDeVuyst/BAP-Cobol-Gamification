@@ -51,14 +51,95 @@ export type Database = {
           },
         ]
       }
+      app_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      badge_definitions: {
+        Row: {
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          description?: string | null
+          id: string
+          name: string
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      level_attempts: {
+        Row: {
+          completed_at: string | null
+          id: string
+          level_id: string
+          started_at: string
+          submit_count: number
+          success: boolean
+          syntax_error_count: number
+          user_id: string
+          validation_fail_count: number
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          level_id: string
+          started_at?: string
+          submit_count?: number
+          success?: boolean
+          syntax_error_count?: number
+          user_id: string
+          validation_fail_count?: number
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          level_id?: string
+          started_at?: string
+          submit_count?: number
+          success?: boolean
+          syntax_error_count?: number
+          user_id?: string
+          validation_fail_count?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
           email: string
           id: string
+          last_active_at: string | null
           last_relapse: string | null
+          levels_completed: number
           streak_days: number
+          total_points: number
           updated_at: string
           username: string
           weekly_count: number
@@ -68,8 +149,11 @@ export type Database = {
           created_at?: string
           email: string
           id: string
+          last_active_at?: string | null
           last_relapse?: string | null
+          levels_completed?: number
           streak_days?: number
+          total_points?: number
           updated_at?: string
           username: string
           weekly_count?: number
@@ -79,11 +163,56 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          last_active_at?: string | null
           last_relapse?: string | null
+          levels_completed?: number
           streak_days?: number
+          total_points?: number
           updated_at?: string
           username?: string
           weekly_count?: number
+        }
+        Relationships: []
+      }
+      sus_responses: {
+        Row: {
+          answers: Json
+          created_at: string
+          id: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          answers: Json
+          created_at?: string
+          id?: string
+          score: number
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          user_id?: string
         }
         Relationships: []
       }

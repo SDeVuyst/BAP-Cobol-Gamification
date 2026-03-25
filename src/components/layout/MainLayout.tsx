@@ -12,14 +12,20 @@ import {
   List,
   User,
   LogOut,
-  RefreshCcw
+  RefreshCcw,
+  BookOpen,
 } from "lucide-react";
 
 interface MainLayoutProps {
   children: ReactNode;
+  /** Tailwind max-width class for inner content (default max-w-4xl). */
+  contentMaxWidthClass?: string;
 }
 
-const MainLayout = ({ children }: MainLayoutProps) => {
+const MainLayout = ({
+  children,
+  contentMaxWidthClass = "max-w-4xl",
+}: MainLayoutProps) => {
   console.log("🔄 [LAYOUT] MainLayout component rendering");
   
   const profile = useAuthStore(state => state.profile);
@@ -54,6 +60,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
   const navItems = [
     { icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard", path: "/dashboard" },
+    { icon: <BookOpen className="h-5 w-5" />, label: "Learn", path: "/learn" },
     { icon: <List className="h-5 w-5" />, label: "Leaderboard", path: "/leaderboard" },
     { icon: <Users className="h-5 w-5" />, label: "Friends", path: "/friends" },
     { icon: <User className="h-5 w-5" />, label: "Profile", path: "/profile" },
@@ -130,7 +137,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       {/* Sidebar for desktop */}
       <div className="hidden md:flex w-64 flex-col bg-vercel-gray-900 border-r border-vercel-gray-800">
         <div className="flex items-center justify-center h-16 border-b border-vercel-gray-800">
-          <h1 className="text-xl font-bold text-gradient">SupaSocial</h1>
+          <h1 className="text-xl font-bold text-gradient">COBOL Quest</h1>
         </div>
         <div className="flex flex-col flex-grow p-4 space-y-2">
           {navItems.map((item) => (
@@ -193,7 +200,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       </div>
       
       <div className="flex-1 overflow-auto pb-16 md:pb-0">
-        <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <div className={`container mx-auto py-8 px-4 ${contentMaxWidthClass}`}>
           {children}
         </div>
       </div>

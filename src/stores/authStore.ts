@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "@/components/ui/use-toast";
+import { logAppEvent } from "@/lib/analytics";
 
 interface Profile {
   id: string;
@@ -12,6 +13,8 @@ interface Profile {
   streakDays: number;
   lastRelapse: string | null;
   avatarUrl: string | null;
+  totalPoints: number;
+  levelsCompleted: number;
 }
 
 interface AuthState {
@@ -51,7 +54,9 @@ const createProfileObject = (data: any): Profile => {
     weeklyCount: data.weekly_count,
     streakDays: data.streak_days,
     lastRelapse: data.last_relapse,
-    avatarUrl: data.avatar_url
+    avatarUrl: data.avatar_url,
+    totalPoints: data.total_points ?? 0,
+    levelsCompleted: data.levels_completed ?? 0,
   };
 };
 
@@ -162,8 +167,16 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   login: async (email, password) => {
     console.log(`🔑 [LOGIN] Attempting login for ${email}`);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      const uid = data.user?.id;
+      if (uid) {
+        void logAppEvent(uid, "login");
+        void supabase
+          .from("profiles")
+          .update({ last_active_at: new Date().toISOString() })
+          .eq("id", uid);
+      }
       toast({ title: "Logged in successfully", description: "Welcome back!" });
     } catch (error: any) {
       console.error("🔑 [LOGIN] Login error:", error);

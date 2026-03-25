@@ -10,6 +10,7 @@ interface Friend {
   weeklyCount: number;
   streakDays: number;
   avatarUrl: string | null;
+  totalPoints: number;
 }
 
 interface FriendRequest {
@@ -101,7 +102,7 @@ export const useFriendsStore = create<FriendsState & FriendsActions>((set, get) 
       if (friendIds.size > 0) {
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, username, weekly_count, streak_days, avatar_url')
+          .select('id, username, weekly_count, streak_days, avatar_url, total_points')
           .in('id', Array.from(friendIds));
           
         if (profilesError) throw profilesError;
@@ -111,7 +112,8 @@ export const useFriendsStore = create<FriendsState & FriendsActions>((set, get) 
           username: profile.username,
           weeklyCount: profile.weekly_count,
           streakDays: profile.streak_days,
-          avatarUrl: profile.avatar_url
+          avatarUrl: profile.avatar_url,
+          totalPoints: profile.total_points ?? 0,
         }));
         
         set({ friends });

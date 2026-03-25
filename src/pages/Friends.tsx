@@ -169,7 +169,7 @@ const Friends = () => {
                           <div>
                             <p className="font-medium">{friend.username}</p>
                             <p className="text-sm text-muted-foreground">
-                              {friend.weeklyCount} this week • {friend.streakDays} day streak
+                              {friend.totalPoints} pts • {friend.streakDays} day streak
                             </p>
                           </div>
                         </div>

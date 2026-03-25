@@ -1,30 +1,24 @@
 import { useEffect, useState } from "react";
-import { useAuthStore } from "@/stores/authStore"; // For current user context (e.g. ID)
-import { useFriendsStore } from "@/stores/friendsStore"; // For friends list and removeFriend action
+import { useAuthStore } from "@/stores/authStore";
+import { useFriendsStore } from "@/stores/friendsStore";
 import MainLayout from "@/components/layout/MainLayout";
 import { useNavigate, useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client"; // Direct Supabase client for detailed profile
+import { supabase } from "@/integrations/supabase/client";
+import { COBOL_LEVELS } from "@/data/cobolLevels";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Avatar } from "@/components/avatar"; // Import the Avatar component
-import { 
-  User, 
-  Calendar, 
-  Award, 
-  Clock,
-  ArrowLeft,
-  UserMinus
-} from "lucide-react";
+import { Avatar } from "@/components/avatar";
+import { User, Trophy, Award, ArrowLeft, UserMinus } from "lucide-react";
 
 interface FriendProfileData {
   id: string;
   username: string;
-  weeklyCount: number;
+  totalPoints: number;
+  levelsCompleted: number;
   streakDays: number;
-  lastRelapse: string | null;
-  avatarUrl?: string | null; // Added to store avatar URL
+  avatarUrl?: string | null;
 }
 
 const FriendProfile = () => {
@@ -32,59 +26,68 @@ const FriendProfile = () => {
   const { friends, removeFriend, loading: friendsLoading } = useFriendsStore();
   const navigate = useNavigate();
   const { friendId } = useParams<{ friendId: string }>();
-  
+
   const [friendProfile, setFriendProfile] = useState<FriendProfileData | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
-  
+
   useEffect(() => {
     const fetchFriendDetails = async () => {
       if (!friendId || !currentUser) {
         setIsLoadingProfile(false);
         return;
       }
-      
+
       setIsLoadingProfile(true);
-      const friendFromStore = friends.find(f => f.id === friendId);
+      const friendFromStore = friends.find((f) => f.id === friendId);
 
       try {
-        // Always fetch full profile from Supabase for `last_relapse`, latest data, and `avatar_url`
         const { data, error } = await supabase
-          .from('profiles')
-          .select('id, username, weekly_count, streak_days, last_relapse, avatar_url') // Added avatar_url
-          .eq('id', friendId)
+          .from("profiles")
+          .select("id, username, streak_days, avatar_url, total_points, levels_completed")
+          .eq("id", friendId)
           .single();
-        
+
         if (error) throw error;
-        
+
         if (data) {
           setFriendProfile({
             id: data.id,
             username: data.username,
-            weeklyCount: data.weekly_count,
+            totalPoints: data.total_points ?? 0,
+            levelsCompleted: data.levels_completed ?? 0,
             streakDays: data.streak_days,
-            lastRelapse: data.last_relapse,
-            avatarUrl: data.avatar_url // Map avatar_url
+            avatarUrl: data.avatar_url,
           });
         } else if (friendFromStore) {
-          // Fallback to store data if Supabase fetch fails but friend exists in list
-          // Note: lastRelapse and avatarUrl will be null/undefined here
-          setFriendProfile({ ...friendFromStore, lastRelapse: null, avatarUrl: null });
+          setFriendProfile({
+            id: friendFromStore.id,
+            username: friendFromStore.username,
+            totalPoints: friendFromStore.totalPoints,
+            levelsCompleted: 0,
+            streakDays: friendFromStore.streakDays,
+            avatarUrl: friendFromStore.avatarUrl,
+          });
         }
-
       } catch (error) {
         console.error("Error fetching friend profile:", error);
-        // If Supabase fetch fails but friend was in store, use store data as fallback
         if (friendFromStore) {
-            setFriendProfile({ ...friendFromStore, lastRelapse: null, avatarUrl: null });
+          setFriendProfile({
+            id: friendFromStore.id,
+            username: friendFromStore.username,
+            totalPoints: friendFromStore.totalPoints,
+            levelsCompleted: 0,
+            streakDays: friendFromStore.streakDays,
+            avatarUrl: friendFromStore.avatarUrl,
+          });
         }
       } finally {
         setIsLoadingProfile(false);
       }
     };
-    
+
     fetchFriendDetails();
   }, [friendId, currentUser, friends]);
-  
+
   if (isLoadingProfile) {
     return (
       <MainLayout>
@@ -94,82 +97,67 @@ const FriendProfile = () => {
       </MainLayout>
     );
   }
-  
+
   if (!friendProfile) {
     return (
       <MainLayout>
         <div className="text-center py-12">
           <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">Friend not found</h3>
-          <p className="text-muted-foreground mb-4">
-            This user profile could not be loaded.
-          </p>
-          <Button onClick={() => navigate("/friends")}>
-            Back to Friends
-          </Button>
+          <p className="text-muted-foreground mb-4">This user profile could not be loaded.</p>
+          <Button onClick={() => navigate("/friends")}>Back to Friends</Button>
         </div>
       </MainLayout>
     );
   }
-  
-  const maxStreakDays = 30;
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
-  };
-  
+
+  const levelProgress = (friendProfile.levelsCompleted / COBOL_LEVELS.length) * 100;
+
   return (
     <MainLayout>
       <div className="space-y-8 animate-fade-in">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => navigate(-1)}
-              aria-label="Go back"
-            >
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Go back">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold mb-2">{friendProfile.username}'s Profile</h1>
-              <p className="text-muted-foreground">
-                View your friend's progress.
-              </p>
+              <h1 className="text-3xl font-bold mb-2">{friendProfile.username}&apos;s Profile</h1>
+              <p className="text-muted-foreground">Peer learning progress</p>
             </div>
           </div>
         </div>
-        
+
         <Card className="vercel-card">
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row items-center md:space-x-6 text-center md:text-left">
               <Avatar
                 src={friendProfile.avatarUrl}
                 alt={`${friendProfile.username}'s avatar`}
-                size={96} // Corresponds to h-24 w-24
+                size={96}
                 fallback={friendProfile.username.charAt(0).toUpperCase()}
                 className="mb-4 md:mb-0"
               />
               <div>
                 <h2 className="text-2xl font-bold">{friendProfile.username}</h2>
-                
-                <div className="flex items-center mt-2 justify-center md:justify-start">
-                  <Award className="h-4 w-4 mr-1 text-vercel-purple" />
-                  <span className="text-sm">
-                    {friendProfile.streakDays} day streak
-                  </span>
+
+                <div className="flex items-center mt-2 justify-center md:justify-start gap-3 flex-wrap">
+                  <div className="flex items-center text-vercel-purple">
+                    <Trophy className="h-4 w-4 mr-1" />
+                    <span className="text-sm font-medium">{friendProfile.totalPoints} pts</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Award className="h-4 w-4 mr-1" />
+                    <span className="text-sm">{friendProfile.streakDays} day streak</span>
+                  </div>
                 </div>
-                
+
                 <div className="mt-4">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={async () => {
-                      if (currentUser && currentUser.id === friendProfile.id) {
-                        // Potentially add a toast or console warning: cannot remove self if somehow listed as friend
-                        console.warn("Attempted to remove self from friends list via friend profile page.");
-                        return;
-                      }
+                      if (currentUser && currentUser.id === friendProfile.id) return;
                       await removeFriend(friendProfile.id);
                       navigate("/friends");
                     }}
@@ -185,42 +173,36 @@ const FriendProfile = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center">
-                <Calendar className="h-5 w-5 mr-2" /> Current Streak
+                <Award className="h-5 w-5 mr-2" /> Levels
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Days Clean</span>
-                <span className="font-medium">{friendProfile.streakDays} days</span>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Completed</span>
+                <span className="font-medium">
+                  {friendProfile.levelsCompleted} / {COBOL_LEVELS.length}
+                </span>
               </div>
-              <Progress value={(friendProfile.streakDays / maxStreakDays) * 100} className="h-2" />
-               {friendProfile.lastRelapse && (
-                <div className="pt-4">
-                  <div className="flex justify-between text-sm">
-                    <span>Last relapse</span>
-                    <span>{formatDate(friendProfile.lastRelapse)}</span>
-                  </div>
-                </div>
-              )}
+              <Progress value={Math.min(100, levelProgress)} className="h-2" />
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center">
-                <Clock className="h-5 w-5 mr-2" /> This Week
+                <Trophy className="h-5 w-5 mr-2" /> Score
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center py-4">
-                <span className="text-muted-foreground block">Total Relapses</span>
+                <span className="text-muted-foreground block">Total points</span>
                 <span className="text-4xl font-bold text-vercel-purple block mt-2">
-                  {friendProfile.weeklyCount}
+                  {friendProfile.totalPoints}
                 </span>
               </div>
             </CardContent>

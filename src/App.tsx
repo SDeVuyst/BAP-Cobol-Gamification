@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuthStore } from "@/stores/authStore";
 import { useEffect } from "react";
 import { useFriendsStore } from "@/stores/friendsStore";
+import { logAppEvent } from "@/lib/analytics";
 
 // Pages
 import Login from "./pages/Login";
@@ -16,6 +17,9 @@ import Leaderboard from "./pages/Leaderboard";
 import Friends from "./pages/Friends";
 import Profile from "./pages/Profile";
 import FriendProfile from "./pages/FriendProfile";
+import Learn from "./pages/Learn";
+import LearnLevel from "./pages/LearnLevel";
+import SusSurvey from "./pages/SusSurvey";
 import NotFound from "./pages/NotFound";
 
 // Auth-protected route
@@ -59,6 +63,7 @@ const AppInitializer = () => {
   useEffect(() => {
     if (isAuthenticated && user) {
       console.log("🌐 [APP] User is authenticated, initializing friends data");
+      void logAppEvent(user.id, "session_ping");
       refreshFriends().catch(err => {
         console.error("🌐 [APP] Failed to load initial friends data:", err);
       });
@@ -103,6 +108,30 @@ const App = () => (
                 <Friends />
               </ProtectedRoute>
             } 
+          />
+          <Route
+            path="/learn"
+            element={
+              <ProtectedRoute path="/learn">
+                <Learn />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/sus"
+            element={
+              <ProtectedRoute path="/learn/sus">
+                <SusSurvey />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/:levelId"
+            element={
+              <ProtectedRoute path="/learn/:levelId">
+                <LearnLevel />
+              </ProtectedRoute>
+            }
           />
           <Route 
             path="/profile" 
