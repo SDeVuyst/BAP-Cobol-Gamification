@@ -169,22 +169,27 @@ const MainLayout = ({
           </Button>
         </nav>
         <div className="border-t border-slate-700/40 p-4">
-          <div className="flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate("/profile")}
+            className="group flex w-full min-w-0 items-center gap-3 rounded-md p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-cyan-700/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#060608]"
+            aria-label="Open profile"
+          >
             <Avatar
               src={profile.avatarUrl}
               alt={profile.username ? `${profile.username}'s avatar` : "User avatar"}
               size={32}
               userId={profile.id}
               fallback={profile.username || "?"}
-              className="shrink-0 ring-2 ring-slate-600/50 ring-offset-2 ring-offset-[#060608]"
+              className="shrink-0 ring-2 ring-slate-600/50 ring-offset-2 ring-offset-[#060608] transition-colors group-hover:ring-cyan-700/45"
             />
             <div className="min-w-0">
-              <div className="truncate font-mono text-sm font-medium text-slate-200">
+              <div className="truncate font-mono text-sm font-medium text-slate-200 group-hover:underline underline-offset-4">
                 {profile.username || "User"}
               </div>
               <div className="font-mono text-[10px] text-cyan-700/90">PTS {profile.totalPoints}</div>
             </div>
-          </div>
+          </button>
         </div>
       </aside>
 
@@ -214,7 +219,7 @@ const MainLayout = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto pb-16 md:pb-0">
+      <div className="flex-1 overflow-auto overflow-x-hidden pb-16 md:pb-0">
         <div className={`container mx-auto px-4 py-8 ${contentMaxWidthClass}`}>{children}</div>
       </div>
     </div>

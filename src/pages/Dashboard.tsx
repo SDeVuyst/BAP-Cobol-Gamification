@@ -4,12 +4,13 @@ import { useFriendsStore } from "@/stores/friendsStore";
 import MainLayout from "@/components/layout/MainLayout";
 import { Avatar } from "@/components/avatar";
 import { COBOL_LEVELS } from "@/data/cobolLevels";
-import { BADGE_LABELS } from "@/data/badgeLabels";
+import { BADGE_EARN_HOW, BADGE_LABELS } from "@/data/badgeLabels";
 import { supabase } from "@/integrations/supabase/client";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BookOpen, ArrowRight, Trophy, Sparkles, Crown, Gem, ShieldCheck, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MainframeStrip } from "@/components/mainframe/MainframeStrip";
@@ -96,6 +97,9 @@ const Dashboard = () => {
     });
   }, [userBadges]);
 
+  const badgeTooltipText = (id: string) =>
+    BADGE_EARN_HOW[id] ?? `Earn "${BADGE_LABELS[id] ?? id}" by completing the matching requirements.`;
+
   return (
     <MainLayout>
       <div className="mainframe-page relative space-y-8 animate-fade-in">
@@ -111,18 +115,25 @@ const Dashboard = () => {
             </p>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <button
+            type="button"
+            className="group flex items-center space-x-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-cyan-700/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#060608]"
+            onClick={() => navigate("/profile")}
+            aria-label="Open profile"
+          >
             <Avatar
               src={profile.avatarUrl}
               fallback={profile.username}
               size={48}
-              className="ring-2 ring-slate-600/50 ring-offset-2 ring-offset-[#060608]"
+              className="ring-2 ring-slate-600/50 ring-offset-2 ring-offset-[#060608] transition-colors group-hover:ring-cyan-700/45"
             />
             <div className="hidden sm:block text-right">
-              <p className="font-mono text-sm font-medium text-slate-200">{profile.username}</p>
+              <p className="font-mono text-sm font-medium text-slate-200 group-hover:underline underline-offset-4">
+                {profile.username}
+              </p>
               <p className="font-mono text-xs text-slate-500">PTS {profile.totalPoints}</p>
             </div>
-          </div>
+          </button>
         </div>
 
         <Card className="mainframe-panel-muted mainframe-card-l-sky overflow-hidden">
@@ -176,20 +187,32 @@ const Dashboard = () => {
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {badgeCards.map(({ id, label, accent, Icon }) => (
-                  <div key={id} className={cn("mainframe-badge-tile-muted border-l-4", accent)}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-9 w-9 items-center justify-center rounded border border-slate-700/50 bg-black/40">
-                          <Icon className="h-5 w-5 text-slate-300" />
+                  <Tooltip key={id}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={cn(
+                          "mainframe-badge-tile-muted border-l-4 cursor-help transition-colors hover:border-slate-500/60",
+                          accent,
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-9 w-9 items-center justify-center rounded border border-slate-700/50 bg-black/40">
+                              <Icon className="h-5 w-5 text-slate-300" />
+                            </div>
+                            <div className="font-medium text-slate-200">{label}</div>
+                          </div>
+                          <div className="inline-flex items-center gap-2 rounded border border-slate-600/40 bg-black/30 px-2.5 py-1 font-mono text-[11px] text-slate-400">
+                            <ShieldCheck className="h-3.5 w-3.5 text-cyan-600/70" />
+                            EARNED
+                          </div>
                         </div>
-                        <div className="font-medium text-slate-200">{label}</div>
                       </div>
-                      <div className="inline-flex items-center gap-2 rounded border border-slate-600/40 bg-black/30 px-2.5 py-1 font-mono text-[11px] text-slate-400">
-                        <ShieldCheck className="h-3.5 w-3.5 text-cyan-600/70" />
-                        EARNED
-                      </div>
-                    </div>
-                  </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[260px] text-xs leading-snug">
+                      {badgeTooltipText(id)}
+                    </TooltipContent>
+                  </Tooltip>
                 ))}
               </div>
             )}

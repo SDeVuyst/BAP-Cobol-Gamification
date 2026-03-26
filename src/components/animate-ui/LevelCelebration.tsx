@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import confetti from "canvas-confetti";
 
 type Props = {
@@ -25,6 +25,8 @@ export default function LevelCelebration({
   title = "Level voltooid!",
   subtitle,
 }: Props) {
+  const [isVisible, setIsVisible] = useState(false);
+
   const balloons = useMemo(() => {
     const count = 7;
     const baseSeed = trigger * 9973;
@@ -62,6 +64,13 @@ export default function LevelCelebration({
     void run();
   }, [trigger]);
 
+  useEffect(() => {
+    if (!trigger) return;
+    setIsVisible(true);
+    const t = window.setTimeout(() => setIsVisible(false), 2400);
+    return () => window.clearTimeout(t);
+  }, [trigger]);
+
   // Always render the overlay; only animate when `trigger` changes.
   return (
     <>
@@ -85,7 +94,7 @@ export default function LevelCelebration({
       >
         <div
           className="absolute inset-0"
-          style={{ opacity: trigger ? 1 : 0, transition: "opacity 120ms ease-out" }}
+          style={{ opacity: isVisible ? 1 : 0, transition: "opacity 120ms ease-out" }}
         />
 
         <div className="absolute inset-0 flex items-center justify-center px-4">
@@ -93,8 +102,8 @@ export default function LevelCelebration({
             key={trigger}
             className="text-center max-w-md"
             style={{
-              animation: trigger ? "confettiTextIn 420ms ease-out both" : "none",
-              display: trigger ? "block" : "none",
+              animation: isVisible ? "confettiTextIn 420ms ease-out both" : "none",
+              display: isVisible ? "block" : "none",
             }}
           >
             <div className="text-2xl font-bold text-white drop-shadow-sm">
@@ -109,7 +118,7 @@ export default function LevelCelebration({
         </div>
 
         <div className="absolute inset-0">
-          {trigger
+          {isVisible
             ? balloons.map((b, idx) => (
                 <div
                   // eslint-disable-next-line react/no-array-index-key

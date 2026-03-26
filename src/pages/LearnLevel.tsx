@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import { useAuthStore } from "@/stores/authStore";
@@ -12,7 +12,7 @@ import {
   getLevel,
 } from "@/data/cobolLevels";
 import { BADGE_EARN_HOW, BADGE_LABELS } from "@/data/badgeLabels";
-import { validateCobolLevel, countSyntaxSignals } from "@/lib/cobolValidate";
+import { countSyntaxSignals, validateCobolLevelDetailed, type ObjectiveCheck, type ValidationResult } from "@/lib/cobolValidate";
 import { logAppEvent } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -32,10 +32,13 @@ import {
   Lightbulb,
   Loader2,
   Lock,
+  Maximize2,
+  Minimize2,
   ScrollText,
   Sparkles,
   Swords,
   Target,
+  XCircle,
   Gem,
   Wand2,
 } from "lucide-react";
@@ -49,28 +52,269 @@ const LearnLevel = () => {
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const fetchUserProfile = useAuthStore((s) => s.fetchUserProfile);
+  const cobolLanguageRegisteredRef = useRef(false);
 
   const level = levelId ? getLevel(levelId) : undefined;
   const [code, setCode] = useState(level?.starterCode ?? "");
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [busy, setBusy] = useState(false);
+  const [locked, setLocked] = useState<boolean | null>(null);
   const startedRef = useRef(false);
   const completedRef = useRef(false);
   const [celebrationTrigger, setCelebrationTrigger] = useState(0);
   const [celebrationSubtitle, setCelebrationSubtitle] = useState<string | null>(null);
   const [earnedLevelBadge, setEarnedLevelBadge] = useState(false);
   const [cleanRunOnThisLevel, setCleanRunOnThisLevel] = useState(false);
+  const [fullscreenEditor, setFullscreenEditor] = useState<null | "python" | "cobol">(null);
+  const cobolEditorRef = useRef<any>(null);
+  const cobolMonacoRef = useRef<any>(null);
+  const cobolDecorationsRef = useRef<string[]>([]);
+  const checklistRef = useRef<HTMLDivElement | null>(null);
+
+  const firstMatchIndex = (text: string, re: RegExp): number | null => {
+    // Ensure we don't carry `lastIndex` across calls.
+    const flags = re.flags.includes("g") ? re.flags : `${re.flags}g`;
+    const rg = new RegExp(re.source, flags);
+    const m = rg.exec(text);
+    return m?.index ?? null;
+  };
+
+  const indexToLine = (text: string, idx: number): number => {
+    // Monaco uses 1-based lines.
+    return text.slice(0, Math.max(0, idx)).split("\n").length;
+  };
+
+  const markerLineForCheck = (c: ObjectiveCheck, src: string): number => {
+    const anchor = c.anchor ?? c.expected;
+    if (anchor) {
+      const idx = firstMatchIndex(src, anchor);
+      if (idx != null) {
+        const line = indexToLine(src, idx);
+        // Heuristic: when anchoring to a header-ish line, place the marker *after* it.
+        const anchorLooksLikeHeader =
+          /DIVISION|SECTION|FILE-CONTROL|PROGRAM-ID/i.test(anchor.source);
+        const totalLines = src.split("\n").length;
+        const target = anchorLooksLikeHeader ? Math.min(totalLines, line + 1) : line;
+        return Math.max(1, target);
+      }
+    }
+    return 1;
+  };
+
+  const scrollToChecklist = () => {
+    checklistRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const clearEditorFeedback = () => {
+    // Disabled: user requested no code error highlights/markers.
+    return;
+  };
+
+  const applyValidationToEditor = (result: ValidationResult, src: string) => {
+    // Disabled: user requested no code error highlights/markers.
+    return;
+  };
+
+  const ensureCobolLanguage = (monaco: any) => {
+    if (cobolLanguageRegisteredRef.current) return;
+    if (!monaco?.languages?.register) return;
+
+    const alreadyRegistered =
+      typeof monaco.languages.getLanguages === "function" &&
+      monaco.languages.getLanguages().some((l: any) => l.id === "cobol");
+
+    if (!alreadyRegistered) {
+      monaco.languages.register({ id: "cobol" });
+    }
+
+    monaco.languages.setLanguageConfiguration("cobol", {
+      comments: {
+        lineComment: "*>",
+      },
+      brackets: [
+        ["(", ")"],
+        ["[", "]"],
+      ],
+      autoClosingPairs: [
+        { open: "\"", close: "\"", notIn: ["string"] },
+        { open: "'", close: "'", notIn: ["string"] },
+        { open: "(", close: ")" },
+        { open: "[", close: "]" },
+      ],
+    });
+
+    monaco.languages.setMonarchTokensProvider("cobol", {
+      defaultToken: "",
+      ignoreCase: true,
+      keywords: [
+        "ACCEPT",
+        "ADD",
+        "CALL",
+        "CANCEL",
+        "CLOSE",
+        "COMPUTE",
+        "CONTINUE",
+        "DISPLAY",
+        "DIVIDE",
+        "ELSE",
+        "END-ADD",
+        "END-CALL",
+        "END-COMPUTE",
+        "END-DIVIDE",
+        "END-EVALUATE",
+        "END-IF",
+        "END-MULTIPLY",
+        "END-PERFORM",
+        "END-READ",
+        "END-RETURN",
+        "END-SEARCH",
+        "END-START",
+        "END-STRING",
+        "END-SUBTRACT",
+        "END-UNSTRING",
+        "END-WRITE",
+        "EVALUATE",
+        "EXIT",
+        "GOBACK",
+        "IF",
+        "INITIALIZE",
+        "INSPECT",
+        "MOVE",
+        "MULTIPLY",
+        "OPEN",
+        "PERFORM",
+        "READ",
+        "RETURN",
+        "SEARCH",
+        "SET",
+        "START",
+        "STOP",
+        "STRING",
+        "SUBTRACT",
+        "UNSTRING",
+        "WHEN",
+        "WRITE",
+      ],
+      divisions: [
+        "IDENTIFICATION",
+        "ENVIRONMENT",
+        "DATA",
+        "PROCEDURE",
+        "CONFIGURATION",
+        "INPUT-OUTPUT",
+        "WORKING-STORAGE",
+        "FILE",
+        "LINKAGE",
+        "LOCAL-STORAGE",
+      ],
+      sections: ["SECTION", "DIVISION", "PARAGRAPH"],
+      builtins: [
+        "PIC",
+        "PICTURE",
+        "VALUE",
+        "VALUES",
+        "OCCURS",
+        "REDEFINES",
+        "COPY",
+        "REPLACE",
+        "PROGRAM-ID",
+        "AUTHOR",
+        "DATE-WRITTEN",
+        "DATE-COMPILED",
+      ],
+      tokenizer: {
+        root: [
+          [/^\s*\*.*$/, "comment"],
+          [/\*>\s.*$/, "comment"],
+          [/"([^"\\]|\\.)*$/, "string.invalid"],
+          [/'([^'\\]|\\.)*$/, "string.invalid"],
+          [/"/, "string", "@string_double"],
+          [/'/, "string", "@string_single"],
+          [/\b\d+(\.\d+)?\b/, "number"],
+          [/\b(IDENTIFICATION|ENVIRONMENT|DATA|PROCEDURE)\s+DIVISION\b/, "keyword"],
+          [/\b[A-Z][A-Z0-9-]*\b/, { cases: { "@keywords": "keyword", "@divisions": "keyword", "@builtins": "type.identifier", "@default": "identifier" } }],
+        ],
+        string_double: [
+          [/[^\\"]+/, "string"],
+          [/\\./, "string.escape"],
+          [/"/, "string", "@pop"],
+        ],
+        string_single: [
+          [/[^\\']+/, "string"],
+          [/\\./, "string.escape"],
+          [/'/, "string", "@pop"],
+        ],
+      },
+    });
+
+    cobolLanguageRegisteredRef.current = true;
+  };
+
+  useEffect(() => {
+    if (!fullscreenEditor) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreenEditor(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [fullscreenEditor]);
+
+  const fullscreenTitle = useMemo(() => {
+    if (fullscreenEditor === "python") return "Python (reference)";
+    if (fullscreenEditor === "cobol") return "Jouw COBOL";
+    return "";
+  }, [fullscreenEditor]);
 
   useEffect(() => {
     if (level) setCode(level.starterCode);
   }, [level?.id]);
 
   useEffect(() => {
+    (async () => {
+      if (!user?.id || !levelId) return;
+
+      const idx = COBOL_LEVEL_IDS.indexOf(levelId as (typeof COBOL_LEVEL_IDS)[number]);
+      if (idx <= 0) {
+        setLocked(false);
+        return;
+      }
+
+      const prevId = COBOL_LEVEL_IDS[idx - 1];
+      const { data, error } = await supabase
+        .from("level_attempts")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("level_id", prevId)
+        .eq("success", true)
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+        // Fail open on transient DB errors to avoid trapping the user.
+        setLocked(false);
+        return;
+      }
+
+      const isLocked = !data;
+      setLocked(isLocked);
+      if (isLocked) {
+        toast({
+          title: "Level locked",
+          description: `Rond eerst level ${prevId} af om level ${levelId} te unlocken.`,
+          variant: "destructive",
+        });
+        navigate("/learn", { replace: true });
+      }
+    })();
+  }, [user?.id, levelId, navigate]);
+
+  useEffect(() => {
     if (!user?.id || !levelId || !level || !COBOL_LEVEL_IDS.includes(levelId as (typeof COBOL_LEVEL_IDS)[number])) {
       return;
     }
+    if (locked !== false) return;
     if (startedRef.current) return;
     startedRef.current = true;
 
@@ -97,7 +341,7 @@ const LearnLevel = () => {
         .update({ last_active_at: new Date().toISOString() })
         .eq("id", user.id);
     })();
-  }, [user?.id, levelId, level]);
+  }, [user?.id, levelId, level, locked]);
 
   useEffect(() => {
     (async () => {
@@ -149,6 +393,14 @@ const LearnLevel = () => {
     );
   }
 
+  if (locked === true) {
+    return (
+      <MainLayout contentMaxWidthClass="max-w-7xl">
+        <p>Level locked. Terug naar levels…</p>
+      </MainLayout>
+    );
+  }
+
   if (!levelId || !level || !COBOL_LEVEL_IDS.includes(levelId as (typeof COBOL_LEVEL_IDS)[number])) {
     return (
       <MainLayout contentMaxWidthClass="max-w-7xl">
@@ -168,9 +420,11 @@ const LearnLevel = () => {
     }
 
     setBusy(true);
-    setErrors([]);
+    clearEditorFeedback();
 
-    const result = validateCobolLevel(levelId, code);
+    const result = validateCobolLevelDetailed(levelId, code);
+    setValidation(result);
+    applyValidationToEditor(result, code);
     const extraSyntax = countSyntaxSignals(code);
 
     const { data: row } = await supabase
@@ -201,7 +455,6 @@ const LearnLevel = () => {
         level_id: levelId,
         errors: result.errors,
       });
-      setErrors(result.errors);
       setBusy(false);
       return;
     }
@@ -310,7 +563,7 @@ const LearnLevel = () => {
         title={`Level ${level.id} compleet!`}
         subtitle={celebrationSubtitle ?? undefined}
       />
-      <div className="mainframe-page relative space-y-6 animate-fade-in">
+      <div className="mainframe-page relative space-y-6 animate-fade-in overflow-x-hidden">
         <div className="mainframe-glow-soft-tl" />
         <div className="mainframe-glow-soft-br" />
 
@@ -331,18 +584,6 @@ const LearnLevel = () => {
             <CheckCircle2 className="h-4 w-4" />
             <AlertDescription>
               Dit level is afgerond. Je kunt de code nog aanpassen om te oefenen; scores zijn al gelogd.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {errors.length > 0 && (
-          <Alert variant="destructive">
-            <AlertDescription>
-              <ul className="list-disc pl-4 space-y-1">
-                {errors.map((e) => (
-                  <li key={e}>{e}</li>
-                ))}
-              </ul>
             </AlertDescription>
           </Alert>
         )}
@@ -511,16 +752,33 @@ const LearnLevel = () => {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
-          <Card className="mainframe-panel-muted mainframe-card-l-sky relative overflow-hidden h-full flex flex-col">
+          <Card className="mainframe-panel-muted mainframe-card-l-silver relative overflow-hidden h-full flex flex-col">
             <MainframeStrip variant="muted" left="PYTHON — REFERENCE" right="READ-ONLY" />
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Code2 className="h-4 w-4 text-cyan-600/90" /> Python (reference)
                 </CardTitle>
-                <div className="inline-flex items-center gap-2 rounded-full border border-slate-600/50 bg-black/20 px-3 py-1 text-xs text-slate-300">
-                  <Lock className="h-3.5 w-3.5 text-slate-400" />
-                  Read-only
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-600/50 bg-black/20 font-mono text-[10px] uppercase tracking-wide text-slate-200 hover:bg-slate-800/50"
+                    onClick={() => setFullscreenEditor((cur) => (cur === "python" ? null : "python"))}
+                    aria-label={fullscreenEditor === "python" ? "Exit fullscreen" : "Open fullscreen"}
+                  >
+                    {fullscreenEditor === "python" ? (
+                      <Minimize2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <Maximize2 className="h-3.5 w-3.5" />
+                    )}
+                    Fullscreen
+                  </Button>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-600/50 bg-black/20 px-3 py-1 text-xs text-slate-300">
+                    <Lock className="h-3.5 w-3.5 text-slate-400" />
+                    Read-only
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -530,34 +788,41 @@ const LearnLevel = () => {
                 <Editor
                   height={480}
                   defaultLanguage="python"
-                  theme="vs"
+                  theme="vs-dark"
                   value={level.pythonCode}
                   options={{ minimap: { enabled: false }, fontSize: 13, wordWrap: "on", readOnly: true }}
                 />
               </div>
-              <div className="flex flex-wrap gap-2 text-xs">
-                <div className="inline-flex items-center gap-2 rounded-full border border-slate-600/50 bg-black/20 px-3 py-1 text-slate-300">
-                  <BookText className="h-4 w-4 text-violet-400/90" />
-                  Read the intent, not the syntax
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-slate-600/50 bg-black/20 px-3 py-1 text-slate-300">
-                  <ScrollText className="h-4 w-4 text-amber-500/90" />
-                  Then rewrite in COBOL structure
-                </div>
-              </div>
             </CardContent>
           </Card>
 
-          <Card className="mainframe-panel-muted mainframe-card-l-silver relative overflow-hidden h-full flex flex-col">
+          <Card className="mainframe-panel-muted mainframe-card-l-sky relative overflow-hidden h-full flex flex-col">
             <MainframeStrip variant="muted" left="COBOL — YOUR CODE" right="EDITABLE" />
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <FileLock2 className="h-4 w-4 text-violet-400/90" /> Jouw COBOL
                 </CardTitle>
-                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-700/40 bg-cyan-950/30 px-3 py-1 text-xs text-cyan-200/90">
-                  <Target className="h-3.5 w-3.5 text-cyan-400/90" />
-                  Editable
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-600/50 bg-black/20 font-mono text-[10px] uppercase tracking-wide text-slate-200 hover:bg-slate-800/50"
+                    onClick={() => setFullscreenEditor((cur) => (cur === "cobol" ? null : "cobol"))}
+                    aria-label={fullscreenEditor === "cobol" ? "Exit fullscreen" : "Open fullscreen"}
+                  >
+                    {fullscreenEditor === "cobol" ? (
+                      <Minimize2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <Maximize2 className="h-3.5 w-3.5" />
+                    )}
+                    Fullscreen
+                  </Button>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-700/40 bg-cyan-950/30 px-3 py-1 text-xs text-cyan-200/90">
+                    <Target className="h-3.5 w-3.5 text-cyan-400/90" />
+                    Editable
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -565,10 +830,15 @@ const LearnLevel = () => {
               <div className="rounded-md border border-slate-700/50 overflow-hidden bg-background">
                 <Editor
                   height={480}
-                  defaultLanguage="plaintext"
+                  defaultLanguage="cobol"
                   theme="vs-dark"
                   value={code}
                   onChange={(v) => setCode(v ?? "")}
+                  beforeMount={ensureCobolLanguage}
+                  onMount={(editor, monaco) => {
+                    cobolEditorRef.current = editor;
+                    cobolMonacoRef.current = monaco;
+                  }}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 14,
@@ -576,6 +846,7 @@ const LearnLevel = () => {
                     fontFamily: "Consolas, 'Courier New', monospace",
                     wordWrap: "on",
                     renderLineHighlight: "gutter",
+                    glyphMargin: true,
                   }}
                 />
               </div>
@@ -584,7 +855,15 @@ const LearnLevel = () => {
               </p>
 
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => setCode(level.starterCode)} variant="outline" disabled={busy}>
+                <Button
+                  onClick={() => {
+                    setCode(level.starterCode);
+                    setValidation(null);
+                    clearEditorFeedback();
+                  }}
+                  variant="outline"
+                  disabled={busy}
+                >
                   Reset template
                 </Button>
                 <Button onClick={runValidation} disabled={busy || completed}>
@@ -597,15 +876,27 @@ const LearnLevel = () => {
                   )}
                 </Button>
               </div>
+
+              {validation && !validation.ok ? (
+                <div className="flex items-center justify-between gap-3 rounded-md border border-rose-500/25 bg-rose-950/20 px-3 py-2 text-xs text-rose-200/90">
+                  <div className="min-w-0">
+                    {validation.errors.length} check{validation.errors.length === 1 ? "" : "s"} niet ok.
+                  </div>
+                  <Button type="button" size="sm" variant="outline" onClick={scrollToChecklist} className="shrink-0">
+                    Ga naar checklist
+                  </Button>
+                </div>
+              ) : null}
+              {/* Intentionally no "success" banner (requested). */}
             </CardContent>
           </Card>
         </div>
 
-        <Card className="mainframe-panel-muted mainframe-card-l-silver relative overflow-hidden">
+        <Card ref={checklistRef} className="mainframe-panel-muted mainframe-card-l-silver relative overflow-hidden">
           <MainframeStrip variant="muted" left="DOCS — CHECKLIST" right="HINTS" />
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-cyan-600/80" /> COBOL docs & hints
+              <ClipboardList className="h-4 w-4 text-cyan-600/80" /> Extra Info
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-4">
@@ -615,15 +906,38 @@ const LearnLevel = () => {
                 Checklist
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
-                {level.objectives.map((o) => (
-                  <div
-                    key={o}
-                    className="flex items-start gap-2 rounded-md border border-slate-700/50 bg-black/20 p-3"
-                  >
-                    <CheckCircle2 className="h-4 w-4 text-cyan-600/80 mt-0.5 shrink-0" />
-                    <div className="text-sm text-muted-foreground">{o}</div>
-                  </div>
-                ))}
+                {(() => {
+                  const byLabel = new Map<string, ObjectiveCheck>();
+                  for (const c of validation?.checks ?? []) byLabel.set(c.label, c);
+
+                  return level.objectives.map((o) => {
+                    const c = byLabel.get(o);
+                    const status = !validation ? "unknown" : c?.ok ? "ok" : "fail";
+
+                    const Icon = status === "ok" ? CheckCircle2 : status === "fail" ? XCircle : Target;
+                    const iconClass =
+                      status === "ok"
+                        ? "text-emerald-400/90"
+                        : status === "fail"
+                          ? "text-rose-400/90"
+                          : "text-cyan-600/70";
+
+                    return (
+                      <div
+                        key={o}
+                        className="flex items-start gap-2 rounded-md border border-slate-700/50 bg-black/20 p-3"
+                      >
+                        <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${iconClass}`} />
+                        <div className="min-w-0">
+                          <div className="text-sm text-muted-foreground">{o}</div>
+                          {status === "fail" ? (
+                            <div className="mt-1 text-xs text-rose-200/80">{c?.message ?? "Nog niet ok."}</div>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
 
@@ -644,27 +958,74 @@ const LearnLevel = () => {
             ) : null}
 
             <p className="text-xs text-muted-foreground/90">
-              PoC-validatie is heuristisch (pattern/regex). Het doel is onderzoek naar leer-effici-ency, niet “echte
-              compile-accuracy”.
+              Validatie is heuristisch (pattern/regex).
             </p>
-
-            <div className="flex flex-wrap gap-2 pt-1 text-xs">
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-600/50 bg-black/20 px-3 py-1 text-slate-300">
-                <BookText className="h-4 w-4 text-cyan-600/90" />
-                Look for keywords (DIVISION, PIC, IF, PERFORM)
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-600/50 bg-black/20 px-3 py-1 text-slate-300">
-                <ClipboardList className="h-4 w-4 text-cyan-600/80" />
-                Match the checklist items one-by-one
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-600/50 bg-black/20 px-3 py-1 text-slate-300">
-                <Wand2 className="h-4 w-4 text-violet-400/90" />
-                Keep it readable (END-IF / END-PERFORM)
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
+
+      {fullscreenEditor && (
+        <div className="fixed inset-0 z-[110] bg-[#060608]">
+          <div className="h-full w-full p-3 sm:p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3 rounded-md border border-slate-700/50 bg-black/30 px-3 py-2">
+              <div className="min-w-0">
+                <div className="truncate font-mono text-xs uppercase tracking-wide text-slate-400">
+                  Fullscreen editor
+                </div>
+                <div className="truncate text-sm font-medium text-slate-100">{fullscreenTitle}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:block font-mono text-[10px] text-slate-500">Esc to exit</div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-600/50 bg-black/20 font-mono text-[10px] uppercase tracking-wide text-slate-200 hover:bg-slate-800/50"
+                  onClick={() => setFullscreenEditor(null)}
+                >
+                  <Minimize2 className="h-3.5 w-3.5" />
+                  Exit
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 rounded-md border border-slate-700/50 overflow-hidden bg-background">
+              {fullscreenEditor === "python" ? (
+                <Editor
+                  height="100%"
+                  defaultLanguage="python"
+                  theme="vs-dark"
+                  value={level.pythonCode}
+                  options={{ minimap: { enabled: false }, fontSize: 13, wordWrap: "on", readOnly: true }}
+                />
+              ) : (
+                <Editor
+                  height="100%"
+                  defaultLanguage="cobol"
+                  theme="vs-dark"
+                  value={code}
+                  onChange={(v) => setCode(v ?? "")}
+                  beforeMount={ensureCobolLanguage}
+                  onMount={(editor, monaco) => {
+                    cobolEditorRef.current = editor;
+                    cobolMonacoRef.current = monaco;
+                    if (validation) applyValidationToEditor(validation, code);
+                  }}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    lineHeight: 20,
+                    fontFamily: "Consolas, 'Courier New', monospace",
+                    wordWrap: "on",
+                    renderLineHighlight: "gutter",
+                    glyphMargin: true,
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 };

@@ -198,11 +198,63 @@
     @apply cursor-help rounded-md border border-slate-700/45 bg-black/35 px-2.5 py-1.5 text-left shadow-[inset_0_1px_0_rgba(148,163,184,0.06)] transition-colors hover:border-slate-600/55;
   }
 
+  @keyframes mf-shimmer {
+    0% {
+      background-position: 0% 50%;
+      opacity: 0.35;
+    }
+    50% {
+      background-position: 100% 50%;
+      opacity: 0.55;
+    }
+    100% {
+      background-position: 0% 50%;
+      opacity: 0.35;
+    }
+  }
+
+  @keyframes mf-float {
+    0% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  .mf-card-interactive {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-600/65 hover:shadow-[0_18px_50px_-22px_rgba(0,0,0,0.85)];
+  }
+
+  .mf-shimmer-overlay {
+    background: radial-gradient(800px circle at 30% 0%, rgba(34, 211, 238, 0.08), transparent 35%),
+      radial-gradient(700px circle at 70% 30%, rgba(16, 185, 129, 0.06), transparent 40%),
+      linear-gradient(120deg, rgba(148, 163, 184, 0.02), rgba(34, 211, 238, 0.05), rgba(148, 163, 184, 0.02));
+    background-size: 200% 200%;
+    animation: mf-shimmer 8s ease-in-out infinite;
+  }
+
+  .mf-float-slow {
+    animation: mf-float 4.5s ease-in-out infinite;
+  }
+
   .mainframe-progress-track {
     @apply h-2 overflow-hidden rounded-full border border-green-500/15 bg-black/50;
   }
 
   .mainframe-progress-fill {
     @apply h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.35)];
+  }
+
+  /* Monaco editor validation highlights (LearnLevel) */
+  .cobol-validation-line-error {
+    background: rgba(244, 63, 94, 0.12);
+  }
+
+  .cobol-validation-gutter-error {
+    border-left: 3px solid rgba(244, 63, 94, 0.7);
   }
 }

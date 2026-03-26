@@ -174,19 +174,19 @@ const Leaderboard = () => {
   const getRankBadge = (rank: number) => {
     if (rank === 1)
       return (
-        <Badge className="border-emerald-500/40 bg-emerald-900/60 font-mono text-[10px] text-emerald-200 hover:bg-emerald-800/70">
+        <Badge className="border-yellow-500/50 bg-yellow-950/50 font-mono text-[10px] text-yellow-200 hover:bg-yellow-900/60">
           1st
         </Badge>
       );
     if (rank === 2)
       return (
-        <Badge className="border-slate-500/40 bg-slate-800/70 font-mono text-[10px] text-slate-100 hover:bg-slate-700/80">
+        <Badge className="border-slate-300/40 bg-slate-900/50 font-mono text-[10px] text-slate-100 hover:bg-slate-800/60">
           2nd
         </Badge>
       );
     if (rank === 3)
       return (
-        <Badge className="border-teal-600/50 bg-teal-950/50 font-mono text-[10px] text-teal-200 hover:bg-teal-900/60">
+        <Badge className="border-orange-700/50 bg-orange-950/45 font-mono text-[10px] text-orange-200 hover:bg-orange-900/55">
           3rd
         </Badge>
       );
@@ -210,19 +210,19 @@ const Leaderboard = () => {
           ? [null, podium[0] ?? null, null]
           : [];
 
-  /** Mainframe / 3270-style panel accents by place (emerald / silver / teal — no orange) */
+  /** Mainframe / 3270-style panel accents by place (gold / silver / bronze) */
   const podiumAccent = (rank: number) => {
-    if (rank === 1) return "border-l-emerald-400/95";
-    if (rank === 2) return "border-l-slate-300/85";
-    return "border-l-teal-500/80";
+    if (rank === 1) return "border-l-yellow-400/90";
+    if (rank === 2) return "border-l-slate-200/80";
+    return "border-l-orange-500/85";
   };
 
   const podiumTopStyle = (rank: number) => {
     const accent = podiumAccent(rank);
     return [
-      "border border-b-0 border-green-500/25",
-      "bg-[repeating-linear-gradient(0deg,transparent_0px,rgba(0,255,128,0.02)_1px,transparent_2px),#050806]",
-      "shadow-[inset_0_1px_0_rgba(52,211,153,0.12)]",
+      "border border-b-0 border-slate-700/40",
+      "bg-[repeating-linear-gradient(0deg,transparent_0px,rgba(148,163,184,0.04)_1px,transparent_2px),#050508]",
+      "shadow-[inset_0_1px_0_rgba(148,163,184,0.10)]",
       "border-l-4",
       accent,
     ].join(" ");
@@ -240,20 +240,20 @@ const Leaderboard = () => {
     const accent = podiumAccent(rank);
     return [
       h,
-      "relative flex w-full flex-col items-center justify-center rounded-b-md border border-t-0 border-green-500/20",
+      "relative flex w-full flex-col items-center justify-center rounded-b-md border border-t-0 border-slate-700/35",
       "border-l-4",
       accent,
-      "bg-[repeating-linear-gradient(0deg,transparent_0px,rgba(0,255,128,0.035)_2px,transparent_4px),#0c120f]",
-      "shadow-[inset_0_2px_0_rgba(16,185,129,0.08),inset_0_-4px_12px_rgba(0,0,0,0.45)]",
+      "bg-[repeating-linear-gradient(0deg,transparent_0px,rgba(148,163,184,0.05)_2px,transparent_4px),#0b0b10]",
+      "shadow-[inset_0_2px_0_rgba(148,163,184,0.08),inset_0_-4px_12px_rgba(0,0,0,0.45)]",
     ].join(" ");
   };
 
   const podiumRankNumberClass = (rank: number) => {
     if (rank === 1)
-      return "text-4xl md:text-5xl font-black tabular-nums tracking-tight text-emerald-300 drop-shadow-[0_0_14px_rgba(52,211,153,0.55)]";
+      return "text-4xl md:text-5xl font-black tabular-nums tracking-tight text-yellow-300 drop-shadow-[0_0_14px_rgba(253,224,71,0.50)]";
     if (rank === 2)
       return "text-3xl md:text-4xl font-black tabular-nums tracking-tight text-slate-100 drop-shadow-[0_2px_0_rgba(0,0,0,0.9)]";
-    return "text-3xl md:text-4xl font-black tabular-nums tracking-tight text-teal-300 drop-shadow-[0_0_12px_rgba(45,212,191,0.45),0_2px_0_rgba(0,0,0,1)]";
+    return "text-3xl md:text-4xl font-black tabular-nums tracking-tight text-orange-300 drop-shadow-[0_0_12px_rgba(251,146,60,0.45),0_2px_0_rgba(0,0,0,1)]";
   };
 
   return (
@@ -287,8 +287,8 @@ const Leaderboard = () => {
               className="relative mx-auto flex min-h-[19rem] max-w-3xl flex-row items-stretch justify-center gap-2 pt-8 sm:gap-3 md:min-h-[22rem] md:gap-5"
               aria-label="Top three podium"
             >
-              <div className="pointer-events-none absolute bottom-0 left-2 right-2 h-[3px] rounded-sm bg-gradient-to-r from-emerald-900/40 via-emerald-500/25 to-emerald-900/40" />
-              <div className="pointer-events-none absolute bottom-0.5 left-3 right-3 h-px bg-emerald-400/30" />
+              <div className="pointer-events-none absolute bottom-0 left-2 right-2 h-[3px] rounded-sm bg-gradient-to-r from-slate-900/50 via-slate-300/25 to-slate-900/50" />
+              <div className="pointer-events-none absolute bottom-0.5 left-3 right-3 h-px bg-slate-200/25" />
 
               {podiumSlots.map((u, slotIdx) => {
                 if (!u) {
@@ -307,13 +307,13 @@ const Leaderboard = () => {
                   >
                     <div className="mb-0 flex items-center justify-between gap-1 border border-b-0 border-green-500/20 bg-[#040604] px-2 py-1 font-mono text-[9px] text-emerald-500/90 uppercase tracking-wider md:text-[10px]">
                       <span className="truncate">IDENTIFICATION DIVISION</span>
-                      <span className="shrink-0 text-emerald-400/80">RANK-{String(u.rank).padStart(2, "0")}</span>
+                      <span className="shrink-0 text-slate-300/70">RANK-{String(u.rank).padStart(2, "0")}</span>
                     </div>
                     <div className={`flex flex-col border border-b-0 border-t-0 px-3 pt-3 pb-3 ${podiumTopStyle(u.rank)}`}>
                       <div className="flex flex-col items-center text-center">
-                        <div className="font-mono text-[10px] text-emerald-600/80 md:text-xs">
-                          <span className="text-emerald-500/70">*</span> PROCEDURE DIVISION{" "}
-                          <span className="text-emerald-500/70">*</span>
+                        <div className="font-mono text-[10px] text-slate-500 md:text-xs">
+                          <span className="text-slate-500/70">*</span> PROCEDURE DIVISION{" "}
+                          <span className="text-slate-500/70">*</span>
                         </div>
                         <Avatar
                           src={u.avatarUrl}
@@ -321,16 +321,16 @@ const Leaderboard = () => {
                           size={u.rank === 1 ? 64 : 52}
                           className={
                             u.rank === 1
-                              ? "mt-2 ring-2 ring-emerald-400/50"
+                              ? "mt-2 ring-2 ring-yellow-400/45"
                               : u.rank === 2
-                                ? "mt-2 ring-1 ring-slate-400/35"
-                                : "mt-2 ring-1 ring-teal-500/40"
+                                ? "mt-2 ring-1 ring-slate-300/35"
+                                : "mt-2 ring-1 ring-orange-500/35"
                           }
                         />
                         <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
                           {getRankBadge(u.rank)}
                           <Trophy
-                            className={`h-4 w-4 shrink-0 ${u.rank === 1 ? "text-emerald-400" : u.rank === 2 ? "text-slate-300" : "text-teal-400"}`}
+                            className={`h-4 w-4 shrink-0 ${u.rank === 1 ? "text-yellow-400" : u.rank === 2 ? "text-slate-300" : "text-orange-400"}`}
                           />
                         </div>
                         <span
@@ -350,11 +350,11 @@ const Leaderboard = () => {
                       </div>
                     </div>
                     <div className={podiumPedestalShell(u.rank)}>
-                      <span className="pointer-events-none absolute top-1 left-2 font-mono text-[9px] uppercase tracking-widest text-emerald-500/55 md:text-[10px]">
+                      <span className="pointer-events-none absolute top-1 left-2 font-mono text-[9px] uppercase tracking-widest text-slate-400/60 md:text-[10px]">
                         JOB RANK
                       </span>
                       <span className={`select-none ${podiumRankNumberClass(u.rank)}`}>{u.rank}</span>
-                      <span className="pointer-events-none absolute bottom-1.5 font-mono text-[8px] text-emerald-600/50 md:text-[9px]">
+                      <span className="pointer-events-none absolute bottom-1.5 font-mono text-[8px] text-slate-500/60 md:text-[9px]">
                         EJECT
                       </span>
                     </div>

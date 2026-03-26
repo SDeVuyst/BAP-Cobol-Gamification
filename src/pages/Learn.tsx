@@ -1,11 +1,11 @@
 import { useAuthStore } from "@/stores/authStore";
 import MainLayout from "@/components/layout/MainLayout";
-import { COBOL_LEVELS } from "@/data/cobolLevels";
+import { COBOL_LEVELS, COBOL_LEVEL_IDS } from "@/data/cobolLevels";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Circle, ArrowRight } from "lucide-react";
+import { CheckCircle2, Circle, ArrowRight, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -85,24 +85,30 @@ const Learn = () => {
         <div className="grid gap-4">
           {COBOL_LEVELS.map((level) => {
             const done = doneLevels.has(level.id);
+            const idx = COBOL_LEVEL_IDS.indexOf(level.id);
+            const prevId = idx > 0 ? COBOL_LEVEL_IDS[idx - 1] : null;
+            const unlocked = idx === 0 || (prevId ? doneLevels.has(prevId) : true);
+            const locked = !done && !unlocked;
             return (
               <Card
                 key={level.id}
                 className={cn(
                   "mainframe-panel-muted overflow-hidden",
-                  done ? "mainframe-card-l-status-complete" : "mainframe-card-l-status-pending",
+                  done ? "mainframe-card-l-status-complete" : locked ? "opacity-80" : "mainframe-card-l-status-pending",
                 )}
               >
                 <MainframeStrip
                   variant="muted"
                   left={`LEVEL ${level.id} — SEGMENT`}
-                  right={done ? "STATUS=COMPLETE" : "STATUS=PENDING"}
+                  right={done ? "STATUS=COMPLETE" : locked ? "STATUS=LOCKED" : "STATUS=PENDING"}
                 />
                 <CardHeader className="flex flex-row items-start justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       {done ? (
                         <CheckCircle2 className="h-5 w-5 shrink-0 text-cyan-600/80" />
+                      ) : locked ? (
+                        <Lock className="h-5 w-5 shrink-0 text-slate-600" />
                       ) : (
                         <Circle className="h-5 w-5 shrink-0 text-slate-600" />
                       )}
@@ -117,18 +123,21 @@ const Learn = () => {
                     className={
                       done
                         ? "border-cyan-700/40 bg-cyan-950/30 font-mono text-[10px] uppercase tracking-wide text-cyan-600/90"
+                        : locked
+                          ? "border-slate-600/50 bg-black/40 font-mono text-[10px] uppercase tracking-wide text-slate-400"
                         : "border-slate-600/50 bg-black/40 font-mono text-[10px] uppercase tracking-wide text-slate-500"
                     }
                   >
-                    {done ? "Done" : "Open"}
+                    {done ? "Done" : locked ? "Locked" : "Open"}
                   </Badge>
                 </CardHeader>
                 <CardContent>
                   <Button
                     className="w-full border border-slate-600/50 bg-slate-800/80 font-mono text-xs uppercase tracking-wide text-slate-100 hover:bg-slate-700/80 sm:w-auto"
                     onClick={() => navigate(`/learn/${level.id}`)}
+                    disabled={locked}
                   >
-                    {done ? "Herbekijk level" : "Start level"}
+                    {done ? "Herbekijk level" : locked ? "Level locked" : "Start level"}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>
