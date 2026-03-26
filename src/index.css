@@ -198,6 +198,164 @@
     @apply cursor-help rounded-md border border-slate-700/45 bg-black/35 px-2.5 py-1.5 text-left shadow-[inset_0_1px_0_rgba(148,163,184,0.06)] transition-colors hover:border-slate-600/55;
   }
 
+  /* Collectible badge tiles (gamey / rarity frames) */
+  @keyframes badge-rarity-border {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .badge-collectible {
+    @apply relative overflow-hidden rounded-lg border bg-black/35 px-3 py-2.5 text-left transition-all duration-200;
+    box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.08);
+  }
+
+  .badge-collectible::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.65;
+    background:
+      radial-gradient(600px circle at 20% 0%, rgba(255,255,255,0.06), transparent 40%),
+      repeating-linear-gradient(0deg, transparent 0px, rgba(148,163,184,0.04) 1px, transparent 2px);
+  }
+
+  .badge-collectible::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    pointer-events: none;
+    border-radius: 0.55rem;
+    padding: 1px;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+
+  .badge-collectible:hover::after {
+    opacity: 1;
+  }
+
+  .badge-collectible-locked {
+    @apply border-slate-700/45;
+    filter: saturate(0.8);
+  }
+
+  .badge-collectible-earned {
+    @apply border-slate-600/55;
+    transform: translateZ(0);
+  }
+
+  @keyframes badge-crazy-huerotate {
+    0% {
+      filter: hue-rotate(0deg) saturate(1.1);
+    }
+    50% {
+      filter: hue-rotate(18deg) saturate(1.35);
+    }
+    100% {
+      filter: hue-rotate(0deg) saturate(1.1);
+    }
+  }
+
+  @keyframes badge-crazy-flicker {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    45% {
+      opacity: 0.35;
+    }
+    50% {
+      opacity: 0.7;
+    }
+    55% {
+      opacity: 0.42;
+    }
+  }
+
+  /* Difficulty rarity frames */
+  /* Each difficulty also gets a distinct base “material” look. */
+  .badge-collectible-d1 {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.35), rgba(0, 0, 0, 0.22)) !important;
+  }
+  .badge-collectible-d2 {
+    background: linear-gradient(180deg, rgba(2, 6, 23, 0.4), rgba(0, 0, 0, 0.22)),
+      radial-gradient(700px circle at 20% 10%, rgba(34, 211, 238, 0.06), transparent 42%) !important;
+  }
+  .badge-collectible-d3 {
+    background: linear-gradient(180deg, rgba(2, 6, 23, 0.42), rgba(0, 0, 0, 0.22)),
+      radial-gradient(700px circle at 15% 0%, rgba(245, 158, 11, 0.07), transparent 45%) !important;
+  }
+  .badge-collectible-d4 {
+    background: linear-gradient(180deg, rgba(2, 6, 23, 0.42), rgba(0, 0, 0, 0.22)),
+      radial-gradient(700px circle at 15% 0%, rgba(34, 211, 238, 0.075), transparent 45%),
+      radial-gradient(700px circle at 85% 60%, rgba(16, 185, 129, 0.06), transparent 48%) !important;
+  }
+  .badge-collectible-d5 {
+    background: linear-gradient(180deg, rgba(2, 6, 23, 0.46), rgba(0, 0, 0, 0.22)),
+      radial-gradient(900px circle at 18% 0%, rgba(167, 139, 250, 0.11), transparent 46%),
+      radial-gradient(900px circle at 82% 30%, rgba(236, 72, 153, 0.075), transparent 52%) !important;
+  }
+
+  .badge-collectible-d1::after {
+    background: linear-gradient(90deg, rgba(148,163,184,0.15), rgba(148,163,184,0.05), rgba(148,163,184,0.15));
+  }
+  .badge-collectible-d2::after {
+    background: linear-gradient(90deg, rgba(100,116,139,0.22), rgba(34,211,238,0.10), rgba(100,116,139,0.22));
+  }
+  .badge-collectible-d3::after {
+    background: linear-gradient(90deg, rgba(245,158,11,0.22), rgba(251,191,36,0.10), rgba(245,158,11,0.22));
+  }
+  .badge-collectible-d4::after {
+    background: linear-gradient(90deg, rgba(34,211,238,0.26), rgba(16,185,129,0.10), rgba(34,211,238,0.26));
+  }
+  .badge-collectible-d5::after {
+    background: linear-gradient(90deg, rgba(167,139,250,0.30), rgba(236,72,153,0.12), rgba(167,139,250,0.30));
+    background-size: 220% 220%;
+    animation: badge-rarity-border 6s ease-in-out infinite;
+  }
+
+  /* Subtle premium glow for earned hard badges */
+  .badge-collectible-earned.badge-collectible-d4 {
+    box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.08), 0 0 22px rgba(34, 211, 238, 0.12);
+  }
+  .badge-collectible-earned.badge-collectible-d5 {
+    box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.08), 0 0 42px rgba(167, 139, 250, 0.18);
+    animation: badge-crazy-huerotate 3.8s ease-in-out infinite;
+  }
+
+  /* Extra “crazy” overlay for difficulty 5: scanline shimmer + flicker */
+  .badge-collectible-d5::before {
+    opacity: 0.75;
+    background:
+      radial-gradient(650px circle at 20% 0%, rgba(255,255,255,0.08), transparent 44%),
+      radial-gradient(650px circle at 85% 30%, rgba(167,139,250,0.09), transparent 48%),
+      repeating-linear-gradient(0deg, transparent 0px, rgba(236,72,153,0.05) 1px, transparent 2px);
+    animation: badge-crazy-flicker 2.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .badge-collectible-d5::after {
+      animation: none;
+    }
+    .badge-collectible-earned.badge-collectible-d5 {
+      animation: none;
+    }
+    .badge-collectible-d5::before {
+      animation: none;
+    }
+  }
+
   @keyframes mf-shimmer {
     0% {
       background-position: 0% 50%;

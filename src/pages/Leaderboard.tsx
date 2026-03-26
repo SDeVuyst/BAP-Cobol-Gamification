@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Trophy, User, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { upsertUserBadges } from "@/lib/badges";
 
 interface RankedRow {
   id: string;
@@ -143,6 +144,20 @@ const Leaderboard = () => {
     if (!profile) return;
     load();
   }, [profile, load]);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    const me = rankedUsers.find((r) => r.id === profile.id);
+    if (!me) return;
+
+    const earned: string[] = [];
+    if (me.rank <= 50) earned.push("leaderboard_top_50");
+    if (me.rank <= 25) earned.push("leaderboard_top_25");
+    if (me.rank <= 10) earned.push("leaderboard_top_10");
+    if (me.rank <= 5) earned.push("leaderboard_top_5");
+    if (me.rank === 1) earned.push("leaderboard_champion");
+    void upsertUserBadges(profile.id, earned);
+  }, [profile?.id, rankedUsers]);
 
   useEffect(() => {
     const channel = supabase
@@ -306,7 +321,7 @@ const Leaderboard = () => {
                     className={`flex min-h-0 w-full max-w-[11.5rem] flex-1 flex-col justify-end md:max-w-[13rem] ${u.rank === 1 ? "relative z-10" : "z-0"}`}
                   >
                     <div className="mb-0 flex items-center justify-between gap-1 border border-b-0 border-green-500/20 bg-[#040604] px-2 py-1 font-mono text-[9px] text-emerald-500/90 uppercase tracking-wider md:text-[10px]">
-                      <span className="truncate">IDENTIFICATION DIVISION</span>
+                      <span className="truncate text-slate-300/70">IDENTIFICATION DIVISION</span>
                       <span className="shrink-0 text-slate-300/70">RANK-{String(u.rank).padStart(2, "0")}</span>
                     </div>
                     <div className={`flex flex-col border border-b-0 border-t-0 px-3 pt-3 pb-3 ${podiumTopStyle(u.rank)}`}>

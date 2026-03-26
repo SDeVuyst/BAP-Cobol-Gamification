@@ -44,7 +44,6 @@ export interface CobolLevelDefinition {
   objectives: string[];
   mission: string;
   funFact: string;
-  commonMistakes: string[];
   starterCode: string;
 }
 
@@ -103,11 +102,6 @@ if __name__ == "__main__":
       "Vandaag leer je hoe COBOL je dwingt tot structuur. Je bouwt de “skelet” waarin de rest van je programma veilig kan groeien.",
     funFact:
       "In COBOL is de volgorde van divisions niet alleen stijl — het is een contract met de parser.",
-    commonMistakes: [
-      "Je vergeet `PROCEDURE DIVISION.` of schrijft het verkeerd (bijv. zonder DIVISION).",
-      "Je mist `STOP RUN.` waardoor je flow onduidelijk blijft.",
-      "Je zet DATA voordat ENVIRONMENT staat (volgorde-mismatch).",
-    ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. HELLO.
        * TODO: voeg ENVIRONMENT DIVISION. toe
@@ -170,11 +164,6 @@ if __name__ == "__main__":
       "Je maakt opslag “compile-time duidelijk”. PIC vertelt COBOL hoe het geheugen jouw data moet vasthouden.",
     funFact:
       "PIC `V` betekent implied decimal: er wordt geen “decimaalteken” opgeslagen, maar de positie ervan wordt afgeleid.",
-    commonMistakes: [
-      "Je gebruikt `VALUE` in plaats van `PIC` voor het opslagformaat.",
-      "Je zet `PIC X` als numeriek (of andersom) en mist vervolgens verwachte output.",
-      "Je vergeet dat `V` cijfers verwacht om eromheen te bouwen (bv. `99V99`).",
-    ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. PICDEMO.
        DATA DIVISION.
@@ -240,11 +229,6 @@ if __name__ == "__main__":
       "Je leert data structureren als een ladder: 01 bovenaan, 05 als velden, en 77 voor extra elementen.",
     funFact:
       "Level-nummers zijn semantiek + structuur: ze helpen COBOL om je record layout te begrijpen.",
-    commonMistakes: [
-      "05 staat buiten een 01 (of je zet 05 direct “los”).",
-      "77 wordt gebruikt, maar heeft geen duidelijke rol/plaats in je record.",
-      "Je gebruikt veel levels maar zonder hiërarchie (lastig te lezen).",
-    ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. HIERARCHY.
        DATA DIVISION.
@@ -294,11 +278,6 @@ else:
       "Je bouwt een beslissing die altijd netjes sluit. In COBOL is een goede IF vooral: correct ingekaderd door END-IF.",
     funFact:
       "END-IF is je scope-marker: zo voorkom je dat je logica per ongeluk “doorloopt”.",
-    commonMistakes: [
-      "Je vergeet `END-IF` (dan ‘weet’ COBOL niet waar je beslissing eindigt).",
-      "`ELSE` staat buiten de IF (plaatsing-fout).",
-      "Voorwaardes missen quotes rond literal strings (bv. `\"Y\"`).",
-    ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. BRANCH.
        DATA DIVISION.
@@ -343,11 +322,6 @@ while i <= 3:
       "Loops in COBOL zijn expliciet: jij kiest control variable + exit-conditie. Je vertaalt het ‘itereren’ mindset naar PERFORM.",
     funFact:
       "`BY` bepaalt hoe je control variable verandert — zonder BY is je ‘progress’ onduidelijk.",
-    commonMistakes: [
-      "Spelfout in UNTIL (bv. ONTIL).",
-      "Je gebruikt PERFORM VARYING, maar mist je END-PERFORM afsluiting.",
-      "Je exit-conditie is te breed/geen logische vergelijking (zoals `UNTIL TRUE`).",
-    ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. LOOPS.
        DATA DIVISION.
@@ -400,11 +374,6 @@ if __name__ == "__main__":
       "Je maakt code herbruikbaar. Met paragrafen laat je je programma netter aanvoelen, zoals functies in moderne talen.",
     funFact:
       "`PERFORM <paragraaf>` is letterlijk “voer dit blok uit” — zonder dat je een nieuwe procedure hoeft te schrijven.",
-    commonMistakes: [
-      "Je definieert de paragraph label zonder punt (bv. `VERWERK` i.p.v. `VERWERK.`).",
-      "Je roept de paragraaf verkeerd aan (typo in naam of vergeet PERFORM).",
-      "Je plaatst de paragraafsectie op een rare plek (heuristiek checkt globaal op PROCEDURE DIVISION).",
-    ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. PARAS.
        PROCEDURE DIVISION.
@@ -457,11 +426,6 @@ except FileNotFoundError:
       "Je maakt je programma robuuster. Als een bestand niet gevonden wordt, vang je dat op met FILE STATUS en geef je de juiste reactie.",
     funFact:
       "FILE STATUS is vaak een 2-char code. `'35'` wordt heel vaak gebruikt als ‘file not found’-case in leercontexten.",
-    commonMistakes: [
-      "Je declareert WS-STATUS, maar vergelijkt de status niet in een IF.",
-      "Je vergelijkt met 35 zonder quotes (heuristiek verwacht `'35'` of `\"35\"`).",
-      "Je check’t FILE STATUS, maar vergeet END-IF (je logica blijft hangen).",
-    ],
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. FILECHK.
        ENVIRONMENT DIVISION.

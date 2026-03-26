@@ -2,16 +2,21 @@ import { useAuthStore } from "@/stores/authStore";
 import MainLayout from "@/components/layout/MainLayout";
 import { useNavigate } from "react-router-dom";
 import { COBOL_LEVELS } from "@/data/cobolLevels";
-import { BADGE_LABELS } from "@/data/badgeLabels";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useMemo, useState } from "react";
+import { upsertUserBadges } from "@/lib/badges";
+import type { BadgeDefinition } from "@/lib/badgeDefinitions";
+import { fetchBadgeDefinitions } from "@/lib/badgeDefinitions";
+import { getBadgeDifficultyLabel, getBadgeIconFromKey, normalizeTier, badgeAccentClass } from "@/lib/badgePresentation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarUpload } from "@/components/avatar";
-import { User, Trophy, Award, ArrowRight, Gem, Sparkles, ShieldCheck, Crown, Flame, Target, Zap, Medal, TrendingUp } from "lucide-react";
+import { User, Trophy, Award, ArrowRight, Gem, Sparkles, ShieldCheck, Crown, Flame, Target, Zap, Medal, TrendingUp, Lock } from "lucide-react";
 import { MainframeStrip } from "@/components/mainframe/MainframeStrip";
+import { cn } from "@/lib/utils";
 
 type NeighborRow = {
   id: string;
@@ -25,6 +30,7 @@ const Profile = () => {
   const updateAvatarUrl = useAuthStore((state) => state.updateAvatarUrl);
   const navigate = useNavigate();
   const [userBadges, setUserBadges] = useState<{ badge_id: string }[]>([]);
+  const [definitions, setDefinitions] = useState<BadgeDefinition[]>([]);
   const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null);
   const [leaderboardNeighbors, setLeaderboardNeighbors] = useState<{
     above: NeighborRow | null;
@@ -51,6 +57,21 @@ const Profile = () => {
     };
   }, [profile?.id]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await fetchBadgeDefinitions();
+        if (!cancelled) setDefinitions(rows);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   /** Rank = 1 + number of profiles with strictly higher total_points (ties share the same rank number). */
   useEffect(() => {
     if (!profile?.id) return;
@@ -64,7 +85,17 @@ const Profile = () => {
         if (error) console.error(error);
         return;
       }
-      setLeaderboardRank((count ?? 0) + 1);
+      const rank = (count ?? 0) + 1;
+      setLeaderboardRank(rank);
+
+      // Leaderboard rank badges
+      const earned: string[] = [];
+      if (rank <= 50) earned.push("leaderboard_top_50");
+      if (rank <= 25) earned.push("leaderboard_top_25");
+      if (rank <= 10) earned.push("leaderboard_top_10");
+      if (rank <= 5) earned.push("leaderboard_top_5");
+      if (rank === 1) earned.push("leaderboard_champion");
+      await upsertUserBadges(profile.id, earned);
     })();
     return () => {
       cancelled = true;
@@ -72,15 +103,25 @@ const Profile = () => {
   }, [profile?.id, profile?.totalPoints]);
 
   const badgeCards = useMemo(() => {
-    return userBadges.map((b) => {
-      const label = BADGE_LABELS[b.badge_id] ?? b.badge_id;
-      const accent =
-        b.badge_id === "perfect_streak" ? "border-l-teal-500/60" : "border-l-slate-500/55";
-      const Icon =
-        b.badge_id === "perfect_streak" ? Flame : b.badge_id.includes("error") ? ShieldCheck : Gem;
-      return { id: b.badge_id, label, accent, Icon };
+    const earned = new Set(userBadges.map((b) => b.badge_id));
+    return definitions.map((d) => {
+      const isEarned = earned.has(d.id);
+      const label = d.name ?? d.id;
+      const tier = normalizeTier(d.tier);
+      const accent = badgeAccentClass(tier, isEarned);
+      const Icon = getBadgeIconFromKey(d.icon_key);
+      const difficulty = d.difficulty ?? 1;
+      const howTo = d.how_to_earn ?? d.description ?? "";
+      return { id: d.id, label, accent, Icon, isEarned, tier, difficulty, howTo };
     });
-  }, [userBadges]);
+  }, [userBadges, definitions]);
+
+  const badgeTooltipText = (id: string) => badgeCards.find((b) => b.id === id)?.howTo || "—";
+
+  const totalBadges = definitions.length;
+  const lockedCount = Math.max(0, totalBadges - userBadges.length);
+  const previewBadges = badgeCards.filter((b) => b.isEarned).slice(0, 3);
+  const nextLockedBadge = badgeCards.find((b) => !b.isEarned) ?? null;
 
   const levelProgress = profile ? (profile.levelsCompleted / COBOL_LEVELS.length) * 100 : 0;
   const levelsRemaining = Math.max(0, COBOL_LEVELS.length - (profile?.levelsCompleted ?? 0));
@@ -477,41 +518,67 @@ const Profile = () => {
         </div>
 
         <Card className="mainframe-panel-muted mainframe-card-l-silver relative overflow-hidden">
-          <MainframeStrip variant="muted" left="BADGE REGISTRY" right={`CNT=${userBadges.length}`} />
+          <MainframeStrip variant="muted" left="BADGE REGISTRY" right={`CNT=${userBadges.length}/${totalBadges}`} />
           <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-100">
               <Sparkles className="h-5 w-5 text-slate-400" /> Badges
             </CardTitle>
-            <div className="inline-flex items-center gap-2 rounded border border-slate-600/40 bg-black/35 px-3 py-1 font-mono text-xs text-slate-300">
-              <Crown className="h-4 w-4 text-slate-400" />
-              {userBadges.length} collected
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded border border-slate-600/40 bg-black/35 px-3 py-1 font-mono text-xs text-slate-300">
+                <Crown className="h-4 w-4 text-slate-400" />
+                {userBadges.length} collected
+              </div>
+              <div className="inline-flex items-center gap-2 rounded border border-slate-700/45 bg-black/30 px-3 py-1 font-mono text-xs text-slate-400">
+                <Lock className="h-4 w-4 text-slate-500" />
+                {lockedCount} locked
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            {badgeCards.length === 0 ? (
-              <div className="text-sm text-slate-500">
-                Nog geen badges — rond een level af om je eerste badge te verdienen.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {badgeCards.map(({ id, label, accent, Icon }) => (
-                  <div key={id} className={`mainframe-badge-tile-muted border-l-4 ${accent}`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-9 w-9 items-center justify-center rounded border border-slate-700/50 bg-black/40">
-                          <Icon className="h-5 w-5 text-slate-300" />
-                        </div>
-                        <div className="font-medium text-slate-200">{label}</div>
-                      </div>
-                      <div className="inline-flex items-center gap-2 rounded border border-slate-600/40 bg-black/30 px-2.5 py-1 font-mono text-[11px] text-slate-400">
-                        <ShieldCheck className="h-3.5 w-3.5 text-cyan-600/70" />
-                        EARNED
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            {nextLockedBadge && (
+              <div className="mb-3 text-xs text-slate-500">
+                Volgende badge: <span className="font-mono text-slate-300">{nextLockedBadge.label}</span>
+                <span className="mx-2 text-slate-700/80">—</span>
+                <span className="text-slate-500">{badgeTooltipText(nextLockedBadge.id)}</span>
               </div>
             )}
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                {previewBadges.length === 0 ? (
+                  <div className="rounded-md border border-slate-700/45 bg-black/25 px-3 py-2 font-mono text-xs text-slate-500">
+                    No badges yet — complete a level to earn your first.
+                  </div>
+                ) : (
+                  previewBadges.map(({ id, label, Icon, difficulty }) => (
+                    <Tooltip key={id}>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-2 rounded-md border border-slate-700/45 bg-black/25 px-3 py-2 cursor-help">
+                          <Icon className="h-4 w-4 text-slate-300" />
+                          <div className="max-w-[160px] truncate font-mono text-xs text-slate-200">{label}</div>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[280px] text-xs leading-snug">
+                        <div className="space-y-1">
+                          <div>{badgeTooltipText(id)}</div>
+                          <div className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
+                            Difficulty: {getBadgeDifficultyLabel(difficulty ?? 1)}
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))
+                )}
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full border-slate-600/50 bg-black/30 font-mono text-xs uppercase tracking-wide text-slate-200 hover:border-cyan-700/40 hover:bg-cyan-950/20 hover:text-slate-50 sm:w-auto"
+                onClick={() => navigate("/badges")}
+              >
+                View all badges <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

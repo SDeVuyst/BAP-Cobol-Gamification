@@ -14,6 +14,7 @@ import {
   LogOut,
   RefreshCcw,
   BookOpen,
+  Sparkles,
 } from "lucide-react";
 import { MainframeStrip } from "@/components/mainframe/MainframeStrip";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ const MainLayout = ({
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: BookOpen, label: "Learn", path: "/learn" },
+    { icon: Sparkles, label: "Badges", path: "/badges" },
     { icon: List, label: "Leaderboard", path: "/leaderboard" },
     { icon: Users, label: "Friends", path: "/friends" },
     { icon: User, label: "Profile", path: "/profile" },

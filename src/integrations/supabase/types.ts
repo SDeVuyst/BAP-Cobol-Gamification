@@ -78,18 +78,30 @@ export type Database = {
       badge_definitions: {
         Row: {
           description: string | null
+          difficulty?: number | null
+          how_to_earn?: string | null
           id: string
+          icon_key?: string | null
           name: string
+          tier?: string | null
         }
         Insert: {
           description?: string | null
+          difficulty?: number | null
+          how_to_earn?: string | null
           id: string
+          icon_key?: string | null
           name: string
+          tier?: string | null
         }
         Update: {
           description?: string | null
+          difficulty?: number | null
+          how_to_earn?: string | null
           id?: string
+          icon_key?: string | null
           name?: string
+          tier?: string | null
         }
         Relationships: []
       }

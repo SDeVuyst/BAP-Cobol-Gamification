@@ -20,6 +20,7 @@ import FriendProfile from "./pages/FriendProfile";
 import Learn from "./pages/Learn";
 import LearnLevel from "./pages/LearnLevel";
 import SusSurvey from "./pages/SusSurvey";
+import Badges from "./pages/Badges";
 import NotFound from "./pages/NotFound";
 
 // Auth-protected route
@@ -148,6 +149,14 @@ const App = () => (
                 <FriendProfile />
               </ProtectedRoute>
             } 
+          />
+          <Route
+            path="/badges"
+            element={
+              <ProtectedRoute path="/badges">
+                <Badges />
+              </ProtectedRoute>
+            }
           />
           
           {/* Catch all */}

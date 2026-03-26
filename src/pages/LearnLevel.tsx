@@ -11,10 +11,12 @@ import {
   POINTS_PER_LEVEL,
   getLevel,
 } from "@/data/cobolLevels";
-import { BADGE_EARN_HOW, BADGE_LABELS } from "@/data/badgeLabels";
 import { countSyntaxSignals, validateCobolLevelDetailed, type ObjectiveCheck, type ValidationResult } from "@/lib/cobolValidate";
 import { logAppEvent } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
+import { upsertUserBadges } from "@/lib/badges";
+import type { BadgeDefinition } from "@/lib/badgeDefinitions";
+import { fetchBadgeDefinitions } from "@/lib/badgeDefinitions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
@@ -23,7 +25,6 @@ import {
   ArrowLeft,
   BadgeCheck,
   BookText,
-  Bug,
   CheckCircle2,
   ClipboardList,
   Code2,
@@ -45,6 +46,7 @@ import {
 import LevelCelebration from "@/components/animate-ui/LevelCelebration";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MainframeStrip } from "@/components/mainframe/MainframeStrip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const LearnLevel = () => {
   const { levelId } = useParams<{ levelId: string }>();
@@ -58,6 +60,7 @@ const LearnLevel = () => {
   const [code, setCode] = useState(level?.starterCode ?? "");
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
+  const [badgeDefinitions, setBadgeDefinitions] = useState<BadgeDefinition[]>([]);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [locked, setLocked] = useState<boolean | null>(null);
@@ -68,6 +71,8 @@ const LearnLevel = () => {
   const [earnedLevelBadge, setEarnedLevelBadge] = useState(false);
   const [cleanRunOnThisLevel, setCleanRunOnThisLevel] = useState(false);
   const [fullscreenEditor, setFullscreenEditor] = useState<null | "python" | "cobol">(null);
+  const [tipsOpen, setTipsOpen] = useState(false);
+  const [showFailureDetails, setShowFailureDetails] = useState(false);
   const cobolEditorRef = useRef<any>(null);
   const cobolMonacoRef = useRef<any>(null);
   const cobolDecorationsRef = useRef<string[]>([]);
@@ -385,6 +390,21 @@ const LearnLevel = () => {
     })();
   }, [user?.id, levelId, completed]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await fetchBadgeDefinitions();
+        if (!cancelled) setBadgeDefinitions(rows);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   if (!profile || !user) {
     return (
       <MainLayout contentMaxWidthClass="max-w-7xl">
@@ -413,13 +433,13 @@ const LearnLevel = () => {
   }
 
   const runValidation = async () => {
-    if (completedRef.current) return;
     if (!attemptId || !user?.id) {
       toast({ title: "Even geduld", description: "Sessie wordt nog opgestart.", variant: "destructive" });
       return;
     }
 
     setBusy(true);
+    setShowFailureDetails(false);
     clearEditorFeedback();
 
     const result = validateCobolLevelDetailed(levelId, code);
@@ -429,13 +449,14 @@ const LearnLevel = () => {
 
     const { data: row } = await supabase
       .from("level_attempts")
-      .select("submit_count, validation_fail_count, syntax_error_count")
+      .select("submit_count, validation_fail_count, syntax_error_count, started_at")
       .eq("id", attemptId)
       .single();
 
     const prevSubmit = row?.submit_count ?? 0;
     const prevFail = row?.validation_fail_count ?? 0;
     const prevSyntax = row?.syntax_error_count ?? 0;
+    const startedAt = row?.started_at ?? null;
 
     const submitCount = prevSubmit + 1;
 
@@ -518,19 +539,33 @@ const LearnLevel = () => {
         .eq("id", user.id);
 
       const badgeId = LEVEL_TO_BADGE[levelId];
-      if (badgeId) {
-        await supabase.from("user_badges").upsert(
-          { user_id: user.id, badge_id: badgeId, earned_at: new Date().toISOString() },
-          { onConflict: "user_id,badge_id" },
-        );
+      const earnedNow: string[] = [];
+      if (badgeId) earnedNow.push(badgeId);
+      if (firstTry) earnedNow.push(PERFECT_RUN_BADGE, "first_try_success");
+
+      // Level-completion milestones
+      if (distinctLevels >= 1) earnedNow.push("levels_complete_1");
+      if (distinctLevels >= 3) earnedNow.push("levels_complete_3");
+      if (distinctLevels >= COBOL_LEVEL_IDS.length) earnedNow.push("levels_complete_7");
+
+      // Point milestones (based on updated total)
+      if (newTotal >= 1000) earnedNow.push("points_1000");
+      if (newTotal >= 2500) earnedNow.push("points_2500");
+      if (newTotal >= 5000) earnedNow.push("points_5000");
+
+      // Speedrun badges (attempt start -> success)
+      if (startedAt) {
+        const elapsedMs = Date.now() - new Date(startedAt).getTime();
+        if (Number.isFinite(elapsedMs) && elapsedMs >= 0) {
+          if (elapsedMs < 5 * 60 * 1000) earnedNow.push("speedrun_under_5m");
+          if (elapsedMs < 60 * 1000) earnedNow.push("speedrun_under_1m");
+          if (elapsedMs < 30 * 1000) earnedNow.push("speedrun_under_30s");
+        }
       }
-      if (firstTry) {
-        await supabase.from("user_badges").upsert(
-          { user_id: user.id, badge_id: PERFECT_RUN_BADGE, earned_at: new Date().toISOString() },
-          { onConflict: "user_id,badge_id" },
-        );
-        setCleanRunOnThisLevel(true);
-      }
+
+      await upsertUserBadges(user.id, earnedNow);
+
+      if (firstTry) setCleanRunOnThisLevel(true);
 
       if (badgeId) setEarnedLevelBadge(true);
 
@@ -691,14 +726,14 @@ const LearnLevel = () => {
                   if (levelBadgeId) {
                     defs.push({
                       id: levelBadgeId,
-                      label: BADGE_LABELS[levelBadgeId] ?? levelBadgeId,
+                      label: badgeDefinitions.find((d) => d.id === levelBadgeId)?.name ?? levelBadgeId,
                       tone: "purple",
                       earned: earnedLevelBadge,
                     });
                   }
                   defs.push({
                     id: PERFECT_RUN_BADGE,
-                    label: BADGE_LABELS[PERFECT_RUN_BADGE] ?? PERFECT_RUN_BADGE,
+                    label: badgeDefinitions.find((d) => d.id === PERFECT_RUN_BADGE)?.name ?? PERFECT_RUN_BADGE,
                     tone: "orange",
                     earned: cleanRunOnThisLevel,
                   });
@@ -707,8 +742,9 @@ const LearnLevel = () => {
                   const earnedList = defs.filter((b) => b.earned);
 
                   const tooltipText = (id: string) =>
-                    BADGE_EARN_HOW[id] ??
-                    `Earn "${BADGE_LABELS[id] ?? id}" by meeting this level’s validation requirements.`;
+                    badgeDefinitions.find((d) => d.id === id)?.how_to_earn ??
+                    badgeDefinitions.find((d) => d.id === id)?.description ??
+                    `Earn "${badgeDefinitions.find((d) => d.id === id)?.name ?? id}" by meeting this level’s validation requirements.`;
 
                   const renderBadgeRow = (b: (typeof defs)[number]) => (
                     <Tooltip key={b.id}>
@@ -859,6 +895,7 @@ const LearnLevel = () => {
                   onClick={() => {
                     setCode(level.starterCode);
                     setValidation(null);
+                    setShowFailureDetails(false);
                     clearEditorFeedback();
                   }}
                   variant="outline"
@@ -866,7 +903,7 @@ const LearnLevel = () => {
                 >
                   Reset template
                 </Button>
-                <Button onClick={runValidation} disabled={busy || completed}>
+                <Button onClick={runValidation} disabled={busy}>
                   {busy ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Controleren...
@@ -882,9 +919,31 @@ const LearnLevel = () => {
                   <div className="min-w-0">
                     {validation.errors.length} check{validation.errors.length === 1 ? "" : "s"} niet ok.
                   </div>
-                  <Button type="button" size="sm" variant="outline" onClick={scrollToChecklist} className="shrink-0">
-                    Ga naar checklist
-                  </Button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setTipsOpen(true);
+                        setShowFailureDetails(true);
+                        scrollToChecklist();
+                      }}
+                    >
+                      Toon wat er mis is
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setTipsOpen(false);
+                        setShowFailureDetails(false);
+                      }}
+                    >
+                      Ik probeer zelf
+                    </Button>
+                  </div>
                 </div>
               ) : null}
               {/* Intentionally no "success" banner (requested). */}
@@ -892,76 +951,68 @@ const LearnLevel = () => {
           </Card>
         </div>
 
-        <Card ref={checklistRef} className="mainframe-panel-muted mainframe-card-l-silver relative overflow-hidden">
-          <MainframeStrip variant="muted" left="DOCS — CHECKLIST" right="HINTS" />
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-cyan-600/80" /> Extra Info
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-4">
-            <div>
-              <div className="font-medium text-foreground/90 mb-2 flex items-center gap-2">
-                <Target className="h-4 w-4 text-cyan-600/80" />
-                Checklist
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {(() => {
-                  const byLabel = new Map<string, ObjectiveCheck>();
-                  for (const c of validation?.checks ?? []) byLabel.set(c.label, c);
+        <Collapsible open={tipsOpen} onOpenChange={setTipsOpen}>
+          <Card ref={checklistRef} className="mainframe-panel-muted mainframe-card-l-silver relative overflow-hidden">
+            <MainframeStrip variant="muted" left="DOCS — TIPS" right={tipsOpen ? "OPEN" : "GESLOTEN"} />
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-cyan-600/80" /> Tips
+              </CardTitle>
+              <CollapsibleTrigger asChild>
+                <Button type="button" size="sm" variant="outline">
+                  {tipsOpen ? "Verberg" : "Toon"}
+                </Button>
+              </CollapsibleTrigger>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="text-sm text-muted-foreground space-y-4">
+                <div>
+                  <div className="font-medium text-foreground/90 mb-2 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-cyan-600/80" />
+                    Checklist (tips)
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {(() => {
+                      const byLabel = new Map<string, ObjectiveCheck>();
+                      for (const c of validation?.checks ?? []) byLabel.set(c.label, c);
 
-                  return level.objectives.map((o) => {
-                    const c = byLabel.get(o);
-                    const status = !validation ? "unknown" : c?.ok ? "ok" : "fail";
+                      return level.objectives.map((o) => {
+                        const c = byLabel.get(o);
+                        const reveal = showFailureDetails || (validation?.ok ?? false);
+                        const status = !validation || !reveal ? "unknown" : c?.ok ? "ok" : "fail";
 
-                    const Icon = status === "ok" ? CheckCircle2 : status === "fail" ? XCircle : Target;
-                    const iconClass =
-                      status === "ok"
-                        ? "text-emerald-400/90"
-                        : status === "fail"
-                          ? "text-rose-400/90"
-                          : "text-cyan-600/70";
+                        const Icon = status === "ok" ? CheckCircle2 : status === "fail" ? XCircle : Target;
+                        const iconClass =
+                          status === "ok"
+                            ? "text-emerald-400/90"
+                            : status === "fail"
+                              ? "text-rose-400/90"
+                              : "text-cyan-600/70";
 
-                    return (
-                      <div
-                        key={o}
-                        className="flex items-start gap-2 rounded-md border border-slate-700/50 bg-black/20 p-3"
-                      >
-                        <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${iconClass}`} />
-                        <div className="min-w-0">
-                          <div className="text-sm text-muted-foreground">{o}</div>
-                          {status === "fail" ? (
-                            <div className="mt-1 text-xs text-rose-200/80">{c?.message ?? "Nog niet ok."}</div>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-
-            {level.commonMistakes.length > 0 ? (
-              <div className="space-y-2">
-                <div className="font-medium text-foreground/90 flex items-center gap-2">
-                  <Bug className="h-4 w-4 text-rose-500" /> Veelgemaakte fouten
+                        return (
+                          <div
+                            key={o}
+                            className="flex items-start gap-2 rounded-md border border-slate-700/50 bg-black/20 p-3"
+                          >
+                            <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${iconClass}`} />
+                            <div className="min-w-0">
+                              <div className="text-sm text-muted-foreground">{o}</div>
+                              {status === "fail" && showFailureDetails ? (
+                                <div className="mt-1 text-xs text-rose-200/80">{c?.message ?? "Nog niet ok."}</div>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  {level.commonMistakes.map((m) => (
-                    <div key={m} className="flex items-start gap-2 rounded-md border border-slate-700/50 bg-black/20 p-3">
-                      <Bug className="h-4 w-4 text-rose-500 mt-0.5 shrink-0" />
-                      <div className="text-sm text-muted-foreground">{m}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
 
-            <p className="text-xs text-muted-foreground/90">
-              Validatie is heuristisch (pattern/regex).
-            </p>
-          </CardContent>
-        </Card>
+                <p className="text-xs text-muted-foreground/90">Validatie is heuristisch (pattern/regex).</p>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       </div>
 
       {fullscreenEditor && (
