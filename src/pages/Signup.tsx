@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
-import { useAuthStore } from "@/stores/authStore"; // Import useAuthStore
+import { Link, useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/stores/authStore";
 import AuthLayout from "@/components/layout/AuthLayout";
 
 import { z } from "zod";
@@ -37,6 +37,9 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+const inputClass =
+  "border-slate-600/55 bg-black/35 text-slate-100 placeholder:text-slate-600 focus-visible:ring-cyan-600/40";
+
 const Signup = () => {
   const signup = useAuthStore((state) => state.signup);
   const isAuthLoading = useAuthStore((state) => state.isLoading);
@@ -59,7 +62,7 @@ const Signup = () => {
     setIsSubmitting(true);
     try {
       await signup(data.username, data.email, data.password);
-      navigate("/dashboard"); // Navigate on successful signup
+      navigate("/dashboard");
     } catch (err) {
       // Error is already toasted by the authStore.
       if (err instanceof Error) {
@@ -76,10 +79,8 @@ const Signup = () => {
     <AuthLayout>
       <div className="space-y-6">
         <div className="space-y-2 text-center">
-          <h2 className="text-2xl font-bold">Create an account</h2>
-          <p className="text-sm text-muted-foreground">
-            Enter your information to create an account
-          </p>
+          <h2 className="text-xl font-semibold tracking-tight text-slate-100 sm:text-2xl">Create an account</h2>
+          <p className="text-sm text-slate-500">Enter your information to create an account</p>
         </div>
         
         <Form {...form}>
@@ -89,10 +90,11 @@ const Signup = () => {
               name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Username</FormLabel>
+                  <FormLabel className="text-slate-400">Username</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="yourusername"
+                      className={inputClass}
                       {...field}
                       disabled={isSubmitting || isAuthLoading}
                     />
@@ -126,11 +128,12 @@ const Signup = () => {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="text-slate-400">Password</FormLabel>
                   <FormControl>
                     <Input
                       type="password"
                       placeholder="••••••••"
+                      className={inputClass}
                       {...field}
                       disabled={isSubmitting || isAuthLoading}
                     />
@@ -145,11 +148,12 @@ const Signup = () => {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
+                  <FormLabel className="text-slate-400">Confirm password</FormLabel>
                   <FormControl>
                     <Input
                       type="password"
                       placeholder="••••••••"
+                      className={inputClass}
                       {...field}
                       disabled={isSubmitting || isAuthLoading}
                     />
@@ -160,31 +164,31 @@ const Signup = () => {
             />
             
             {error && (
-              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+              <div className="rounded-md border border-rose-500/35 bg-rose-950/25 p-3 font-mono text-sm text-rose-200">
                 {error}
               </div>
             )}
             
             <Button
               type="submit"
-              className="w-full"
+              className="w-full border border-cyan-700/45 bg-cyan-950/35 font-mono text-xs uppercase tracking-wide text-cyan-100 hover:bg-cyan-950/50"
               disabled={isSubmitting || isAuthLoading}
             >
               {(isSubmitting || isAuthLoading) ? (
-                "Creating account..."
+                "Creating account…"
               ) : (
                 <>
-                  <User className="mr-2 h-4 w-4" /> Create Account
+                  <User className="mr-2 h-4 w-4" /> Create account
                 </>
               )}
             </Button>
           </form>
         </Form>
         
-        <div className="text-center text-sm">
+        <div className="text-center text-sm text-slate-500">
           <p>
             Already have an account?{" "}
-            <Link to="/" className="text-vercel-purple hover:underline">
+            <Link to="/" className="font-medium text-cyan-600/90 underline-offset-4 hover:text-cyan-400 hover:underline">
               Sign in
             </Link>
           </p>

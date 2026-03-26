@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
@@ -27,10 +26,11 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+const inputClass =
+  "border-slate-600/55 bg-black/35 text-slate-100 placeholder:text-slate-600 focus-visible:ring-cyan-600/40";
+
 const Login = () => {
-  console.log("🔄 [LOGIN PAGE] Rendering Login component");
   const login = useAuthStore((state) => state.login);
-  const user = useAuthStore((state) => state.user);
   const isFetchingProfile = useAuthStore((state) => state.isFetchingProfile);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const profile = useAuthStore((state) => state.profile);
@@ -41,20 +41,10 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
-    console.log("🔄 [LOGIN PAGE] Auth state changed:", {
-      isAuthenticated,
-      isFetchingProfile,
-      hasProfile: !!profile,
-      hasUser: !!user,
-      isInitialized,
-    });
-
-    // Only redirect if fully initialized and authenticated with profile
     if (isInitialized && isAuthenticated && profile && !isFetchingProfile) {
-      console.log("🚀 [NAVIGATION] Redirecting to dashboard from Login");
       navigate("/dashboard");
     }
-  }, [isAuthenticated, isFetchingProfile, profile, user, navigate, isInitialized]);
+  }, [isAuthenticated, isFetchingProfile, profile, navigate, isInitialized]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -65,14 +55,11 @@ const Login = () => {
   });
 
   const onSubmit = async (data: FormData) => {
-    console.log(`🔑 [LOGIN PAGE] Submitting login form for ${data.email}`);
     setError(null);
     setIsSubmitting(true);
     try {
       await login(data.email, data.password);
-      console.log("🔑 [LOGIN PAGE] Login function call succeeded");
     } catch (err) {
-      console.error("🔑 [LOGIN PAGE] Login error in component:", err);
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -83,27 +70,22 @@ const Login = () => {
     }
   };
 
-  // Show loading if authenticated and fetching profile
   if (isAuthenticated && isFetchingProfile) {
-    console.log("🔄 [LOGIN PAGE] Rendering loading state (profile fetch)");
     return (
       <AuthLayout>
-        <div className="flex items-center justify-center h-64">
-          <p className="text-lg">Loading your account...</p>
+        <div className="flex h-48 items-center justify-center">
+          <p className="font-mono text-sm text-slate-500">Loading your account…</p>
         </div>
       </AuthLayout>
     );
   }
 
-  console.log("🔄 [LOGIN PAGE] Rendering login form");
   return (
     <AuthLayout>
       <div className="space-y-6">
         <div className="space-y-2 text-center">
-          <h2 className="text-2xl font-bold">Sign In</h2>
-          <p className="text-sm text-muted-foreground">
-            Enter your credentials to access your account
-          </p>
+          <h2 className="text-xl font-semibold tracking-tight text-slate-100 sm:text-2xl">Sign in</h2>
+          <p className="text-sm text-slate-500">Enter your credentials to access your account</p>
         </div>
 
         <Form {...form}>
@@ -113,11 +95,12 @@ const Login = () => {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-slate-400">Email</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
                       placeholder="you@example.com"
+                      className={inputClass}
                       {...field}
                       disabled={isSubmitting}
                     />
@@ -132,11 +115,12 @@ const Login = () => {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="text-slate-400">Password</FormLabel>
                   <FormControl>
                     <Input
                       type="password"
                       placeholder="••••••••"
+                      className={inputClass}
                       {...field}
                       disabled={isSubmitting}
                     />
@@ -147,40 +131,31 @@ const Login = () => {
             />
 
             {error && (
-              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+              <div className="rounded-md border border-rose-500/35 bg-rose-950/25 p-3 font-mono text-sm text-rose-200">
                 {error}
               </div>
             )}
 
             <Button
               type="submit"
-              className="
-                w-full
-                bg-vercel-purple-dark
-                hover:bg-vercel-purple
-                text-white
-                focus-visible:outline
-                focus-visible:outline-2
-                focus-visible:outline-offset-2
-                focus-visible:outline-vercel-purple-dark
-              "
+              className="w-full border border-cyan-700/45 bg-cyan-950/35 font-mono text-xs uppercase tracking-wide text-cyan-100 hover:bg-cyan-950/50"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                "Signing in..."
+                "Signing in…"
               ) : (
                 <>
-                  <LogIn className="mr-2 h-4 w-4" /> Sign In
+                  <LogIn className="mr-2 h-4 w-4" /> Sign in
                 </>
               )}
             </Button>
           </form>
         </Form>
 
-        <div className="text-center text-sm">
+        <div className="text-center text-sm text-slate-500">
           <p>
-            Don't have an account?{" "}
-            <Link to="/signup" className="text-vercel-purple hover:underline">
+            Don&apos;t have an account?{" "}
+            <Link to="/signup" className="font-medium text-cyan-600/90 underline-offset-4 hover:text-cyan-400 hover:underline">
               Sign up
             </Link>
           </p>

@@ -47,11 +47,27 @@ export const Avatar = ({
 
   // Effect to load avatar when src changes
   useEffect(() => {
-    if (src) {
-      downloadImage(src);
-    } else {
+    if (!src) {
       setAvatarUrl(null);
+      return;
     }
+
+    // Allow fully-qualified URLs (or public-path URLs) without downloading from Supabase Storage.
+    // Supabase Storage paths are typically like "userId/filename.png" (no leading slash).
+    const isDirectUrl =
+      src.startsWith("http://") ||
+      src.startsWith("https://") ||
+      src.startsWith("data:") ||
+      src.startsWith("/");
+
+    if (isDirectUrl) {
+      setError(null);
+      setIsLoading(false);
+      setAvatarUrl(src);
+      return;
+    }
+
+    downloadImage(src);
 
     // Cleanup object URL to prevent memory leaks
     return () => {

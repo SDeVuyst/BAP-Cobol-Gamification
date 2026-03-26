@@ -66,15 +66,17 @@ export default {
           "gray-200": "#d4d4d4",
           "gray-100": "#f5f5f5",
 
-          // Accent colors (updated purple shades)
-          blue: "#0070f3",
-          "blue-dark": "#0061d5",
-          purple: "#E2CBFF",        // ⬅️ new lavender
-          "purple-dark": "#4E2CA5", // ⬅️ deeper indigo
+          // Accent colors (aligned to the Learn COBOL logo: orange on black)
+          // NOTE: We keep the existing names (blue/purple) for backwards compatibility
+          // with already-written classNames, but the actual hues are brand-consistent.
+          blue: "#fbbf24", // amber-400 (warm highlight)
+          "blue-dark": "#f59e0b", // amber-500
+          purple: "#ff4d00", // brand orange (primary accent)
+          "purple-dark": "#cc3d00", // deeper burnt orange
           green: "#00d924",
           "green-dark": "#00b01e",
-          orange: "#ff6600",
-          "orange-dark": "#e55a00",
+          orange: "#ff4d00", // brand orange
+          "orange-dark": "#cc3d00",
           red: "#ee0000",
           "red-dark": "#dc2626",
 
@@ -84,8 +86,8 @@ export default {
         },
         // Keep existing goon colors for backward compatibility but update them
         goon: {
-          purple: "#E2CBFF",        // ⬅️ new lavender
-          "dark-purple": "#393BB2", // ⬅️ deeper indigo
+          purple: "#ff4d00", // brand orange
+          "dark-purple": "#cc3d00",
           "deep-bg": "#000000",
           gray: "#737373",
           charcoal: "#262626",
