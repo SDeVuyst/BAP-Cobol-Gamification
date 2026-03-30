@@ -5,7 +5,6 @@ export type AppEventType =
   | "level_open"
   | "level_submit_fail"
   | "level_complete"
-  | "sus_submit"
   | "session_ping";
 
 export async function logAppEvent(

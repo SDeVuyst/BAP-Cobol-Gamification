@@ -574,11 +574,6 @@ const LearnLevel = () => {
         title: "Level voltooid",
         description: subtitle,
       });
-
-      if (levelId === "7") {
-        // Laat de celebration kort "landen" voordat je naar SUS wordt gestuurd.
-        setTimeout(() => navigate("/learn/sus"), 900);
-      }
     } else {
       toast({
         title: "Opgelost",

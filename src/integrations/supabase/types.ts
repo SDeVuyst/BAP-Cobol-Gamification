@@ -186,30 +186,6 @@ export type Database = {
         }
         Relationships: []
       }
-      sus_responses: {
-        Row: {
-          answers: Json
-          created_at: string
-          id: string
-          score: number
-          user_id: string
-        }
-        Insert: {
-          answers: Json
-          created_at?: string
-          id?: string
-          score: number
-          user_id: string
-        }
-        Update: {
-          answers?: Json
-          created_at?: string
-          id?: string
-          score?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
       user_badges: {
         Row: {
           badge_id: string

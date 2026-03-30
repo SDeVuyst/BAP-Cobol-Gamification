@@ -20,7 +20,6 @@ import Friends from "./pages/Friends";
 import Profile from "./pages/Profile";
 import Learn from "./pages/Learn";
 import LearnLevel from "./pages/LearnLevel";
-import SusSurvey from "./pages/SusSurvey";
 import Badges from "./pages/Badges";
 import NotFound from "./pages/NotFound";
 
@@ -116,14 +115,6 @@ const App = () => (
             element={
               <ProtectedRoute path="/learn">
                 <Learn />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/learn/sus"
-            element={
-              <ProtectedRoute path="/learn/sus">
-                <SusSurvey />
               </ProtectedRoute>
             }
           />
