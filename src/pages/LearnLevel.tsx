@@ -582,7 +582,7 @@ const LearnLevel = () => {
     } else {
       toast({
         title: "Opgelost",
-        description: "Al gepasseerd — geen extra punten; poging wel gelogd.",
+        description: "Al gepasseerd - geen extra punten; poging wel gelogd.",
       });
     }
 
@@ -625,7 +625,7 @@ const LearnLevel = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-stretch">
           <Card className="mainframe-panel-muted mainframe-card-l-silver relative overflow-hidden h-full flex flex-col">
-            <MainframeStrip variant="muted" left="REFERENCES — DOCS" right={`LEVEL ${level.id}`} />
+            <MainframeStrip variant="muted" left="REFERENCES - DOCS" right={`LEVEL ${level.id}`} />
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <BookText className="h-4 w-4 text-cyan-600/90" /> Level references
@@ -681,7 +681,7 @@ const LearnLevel = () => {
 
           <div className="flex flex-col gap-6 h-full min-h-0">
             <Card className="mainframe-panel-muted mainframe-card-l-silver relative overflow-hidden flex flex-col shrink-0">
-              <MainframeStrip variant="muted" left="SEGMENT — INFO" right="STATUS" />
+              <MainframeStrip variant="muted" left="SEGMENT - INFO" right="STATUS" />
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Crown className="h-4 w-4 text-amber-500/90" /> Level info
@@ -713,7 +713,7 @@ const LearnLevel = () => {
             </Card>
 
             <Card className="mainframe-panel-muted mainframe-card-l-silver relative overflow-hidden flex flex-col flex-1 min-h-0">
-              <MainframeStrip variant="muted" left="BADGES — THIS LEVEL" right="AWARDS" />
+              <MainframeStrip variant="muted" left="BADGES - THIS LEVEL" right="AWARDS" />
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-amber-500/90" /> Badges
@@ -775,7 +775,7 @@ const LearnLevel = () => {
                         {earnedList.length > 0 ? (
                           <div className="space-y-1.5">{earnedList.map(renderBadgeRow)}</div>
                         ) : (
-                          <p className="text-xs text-muted-foreground">None yet — pass validation to unlock.</p>
+                          <p className="text-xs text-muted-foreground">None yet - pass validation to unlock.</p>
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground/90">Tip: hover a badge for how to earn it. Clean run = first successful submit with no failed checks before.</p>
@@ -789,7 +789,7 @@ const LearnLevel = () => {
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
           <Card className="mainframe-panel-muted mainframe-card-l-silver relative overflow-hidden h-full flex flex-col">
-            <MainframeStrip variant="muted" left="PYTHON — REFERENCE" right="READ-ONLY" />
+            <MainframeStrip variant="muted" left="PYTHON - REFERENCE" right="READ-ONLY" />
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -833,7 +833,7 @@ const LearnLevel = () => {
           </Card>
 
           <Card className="mainframe-panel-muted mainframe-card-l-sky relative overflow-hidden h-full flex flex-col">
-            <MainframeStrip variant="muted" left="COBOL — YOUR CODE" right="EDITABLE" />
+            <MainframeStrip variant="muted" left="COBOL - YOUR CODE" right="EDITABLE" />
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -953,7 +953,7 @@ const LearnLevel = () => {
 
         <Collapsible open={tipsOpen} onOpenChange={setTipsOpen}>
           <Card ref={checklistRef} className="mainframe-panel-muted mainframe-card-l-silver relative overflow-hidden">
-            <MainframeStrip variant="muted" left="DOCS — TIPS" right={tipsOpen ? "OPEN" : "GESLOTEN"} />
+            <MainframeStrip variant="muted" left="DOCS - TIPS" right={tipsOpen ? "OPEN" : "GESLOTEN"} />
             <CardHeader className="flex flex-row items-center justify-between gap-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <ClipboardList className="h-4 w-4 text-cyan-600/80" /> Tips
@@ -969,7 +969,7 @@ const LearnLevel = () => {
                 <div>
                   <div className="font-medium text-foreground/90 mb-2 flex items-center gap-2">
                     <Target className="h-4 w-4 text-cyan-600/80" />
-                    Checklist (tips)
+                    Checklist
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {(() => {

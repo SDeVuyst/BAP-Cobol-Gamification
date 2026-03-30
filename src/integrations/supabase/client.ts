@@ -3,6 +3,7 @@ import {
   createClient,
   type Session,
   type AuthChangeEvent,
+  type SignUpWithPasswordCredentials,
 } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
@@ -19,7 +20,7 @@ const SUPABASE_PUBLISHABLE_KEY =
 
 if (!import.meta.env.VITE_SUPABASE_URL) {
   console.warn(
-    "🔌 [SUPABASE] VITE_SUPABASE_URL not set — using bundled fallback. Prefer `.env`.",
+    "🔌 [SUPABASE] VITE_SUPABASE_URL not set - using bundled fallback. Prefer `.env`.",
   );
 }
 
@@ -78,7 +79,7 @@ export const supabase = {
       });
       return result;
     },
-    signUp: async (credentials: { email: string; password: string }) => {
+    signUp: async (credentials: SignUpWithPasswordCredentials) => {
       console.log(`🔌 [SUPABASE] Attempting sign up for: ${credentials.email}`);
       const result = await supabaseClient.auth.signUp(credentials);
       console.log("🔌 [SUPABASE] Sign up result:", {

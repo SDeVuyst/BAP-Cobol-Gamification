@@ -119,7 +119,7 @@ const Dashboard = () => {
     });
   }, [userBadges, definitions]);
 
-  const badgeTooltipText = (id: string) => badgeCards.find((b) => b.id === id)?.howTo || "—";
+  const badgeTooltipText = (id: string) => badgeCards.find((b) => b.id === id)?.howTo || "-";
 
   const totalBadges = definitions.length;
   const lockedCount = Math.max(0, totalBadges - userBadges.length);
@@ -134,7 +134,7 @@ const Dashboard = () => {
 
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* WORKING-STORAGE — SESSION OVERVIEW *</p>
+            <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* WORKING-STORAGE - SESSION OVERVIEW *</p>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground">
               Je COBOL-leerpad, punten en badges
@@ -209,9 +209,9 @@ const Dashboard = () => {
           </Card>
 
           <Card className="mainframe-panel-muted mainframe-card-l-sky overflow-hidden">
-            <MainframeStrip variant="muted" left="SOCIAL — FRIEND QUEUE" right="TOP-3" />
+            <MainframeStrip variant="muted" left="SOCIAL - FRIEND QUEUE" right="TOP-3" />
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-semibold tracking-tight text-slate-100">Vrienden — punten</CardTitle>
+              <CardTitle className="text-lg font-semibold tracking-tight text-slate-100">Vrienden - punten</CardTitle>
               <Button
                 variant="ghost"
                 className="font-mono text-xs text-cyan-700/85 hover:bg-slate-800/60 hover:text-cyan-600"
@@ -275,7 +275,7 @@ const Dashboard = () => {
               <div className="mb-3 text-xs text-slate-500">
                 Volgende badge:{" "}
                 <span className="font-mono text-slate-300">{nextLockedBadge.label}</span>
-                <span className="mx-2 text-slate-700/80">—</span>
+                <span className="mx-2 text-slate-700/80">-</span>
                 <span className="text-slate-500">{badgeTooltipText(nextLockedBadge.id)}</span>
               </div>
             )}
@@ -284,7 +284,7 @@ const Dashboard = () => {
               <div className="flex flex-wrap items-center gap-2">
                 {previewBadges.length === 0 ? (
                   <div className="rounded-md border border-slate-700/45 bg-black/25 px-3 py-2 font-mono text-xs text-slate-500">
-                    No badges yet — complete a level to earn your first.
+                    No badges yet - complete a level to earn your first.
                   </div>
                 ) : (
                   previewBadges.map(({ id, label, Icon, difficulty }) => (

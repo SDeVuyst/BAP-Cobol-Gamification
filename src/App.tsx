@@ -8,6 +8,8 @@ import { useAuthStore } from "@/stores/authStore";
 import { useEffect } from "react";
 import { useFriendsStore } from "@/stores/friendsStore";
 import { logAppEvent } from "@/lib/analytics";
+import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Analytics } from "@vercel/analytics/react";
 
 // Pages
 import Login from "./pages/Login";
@@ -16,7 +18,6 @@ import Dashboard from "./pages/Dashboard";
 import Leaderboard from "./pages/Leaderboard";
 import Friends from "./pages/Friends";
 import Profile from "./pages/Profile";
-import FriendProfile from "./pages/FriendProfile";
 import Learn from "./pages/Learn";
 import LearnLevel from "./pages/LearnLevel";
 import SusSurvey from "./pages/SusSurvey";
@@ -146,7 +147,7 @@ const App = () => (
             path="/profile/:friendId" 
             element={
               <ProtectedRoute path="/profile/:friendId">
-                <FriendProfile />
+                <Profile />
               </ProtectedRoute>
             } 
           />
@@ -164,6 +165,8 @@ const App = () => (
         </Routes>
         <Toaster />
         <SonnerToaster />
+        <SpeedInsights />
+        <Analytics />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

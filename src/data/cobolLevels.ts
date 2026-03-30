@@ -42,8 +42,6 @@ export interface CobolLevelDefinition {
   docs?: CobolDocLink[];
   cobolExplain?: CobolLevelExplain;
   objectives: string[];
-  mission: string;
-  funFact: string;
   starterCode: string;
 }
 
@@ -52,25 +50,17 @@ export const COBOL_LEVELS: CobolLevelDefinition[] = [
     id: "1",
     title: "De vier divisions",
     summary:
-      "Bouw de minimale skeletstructuur van een COBOL-programma: Identification, Environment, Data en Procedure.",
+      "Bouw de boilerplate van een COBOL-programma: Identification, Environment, Data en Procedure.",
     pythonHint:
-      "In Python is één bestand vaak genoeg; in COBOL verdeel je verplichte blokken over division-headers — vergelijkbaar met het strikt ordenen van imports, config en main().",
-    pythonCode: `# Python-idee (alles bij elkaar in één bestand)
-#
-# Python heeft geen verplichte "divisions"; je simuleert de structuur
-# met module-level configuratie + een main()-functie.
-
-PROGRAM_ID = "HELLO"
-
-def main():
+      "In Python is één bestand vaak genoeg; in COBOL verdeel je verplichte blokken over division-headers - vergelijkbaar met het strikt ordenen van imports, config en main().",
+    pythonCode: `def main():
     print("OK")
 
 if __name__ == "__main__":
     main()
 `,
     docs: [
-      { title: "COBOL for z/OS 6.5 docs (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0" },
-      { title: "IDENTIFICATION DIVISION (IBM)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0?topic=reference-identification-division" },
+      { title: "COBOL program structure 6.5 docs (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0?topic=structure-cobol-program" },
     ],
     cobolExplain: {
       text: "COBOL-programma’s zijn opgedeeld in vaste blokken (“divisions”). Je zet ze in volgorde: IDENTIFICATION → ENVIRONMENT → DATA → PROCEDURE.",
@@ -98,34 +88,22 @@ if __name__ == "__main__":
       "Bevat PROCEDURE DIVISION.",
       "Heeft een `STOP RUN.` aan het eind van je run.",
     ],
-    mission:
-      "Vandaag leer je hoe COBOL je dwingt tot structuur. Je bouwt de “skelet” waarin de rest van je programma veilig kan groeien.",
-    funFact:
-      "In COBOL is de volgorde van divisions niet alleen stijl — het is een contract met de parser.",
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. HELLO.
-       * TODO: voeg ENVIRONMENT DIVISION. toe
-       * TODO: voeg DATA DIVISION. toe
-       * TODO: voeg WORKING-STORAGE SECTION. toe (onder DATA DIVISION.)
+       * TODO: voeg de nodige divisions toe
 
        PROCEDURE DIVISION.
            DISPLAY "OK".
-           * TODO: sluit af met STOP RUN.
+           * TODO: stop het programma
 `,
   },
   {
     id: "2",
     title: "PICTURE-clauses",
-    summary: "Definieer velden met PIC 9 (numeriek), PIC X (alfanumeriek) en PIC V (impliciete decimaal).",
+    summary: "Definieer velden (variabelen) met PICTURE (PIC) clauses.",
     pythonHint:
-      "Waar Python types dynamisch zijn, legt PIC het opslagformaat vast — denk aan int vs str, maar op byte-niveau.",
-    pythonCode: `# Python-idee: geef je variabelen een "verwachte vorm".
-#
-# COBOL's PIC legt opslagformaat vast op compile-time.
-# Python bewaart geen vaste "picture"; je modelleert het meestal met types
-# (int/str) en eventueel Decimal voor decimale weergave.
-
-from decimal import Decimal
+      "Waar Python types dynamisch zijn, legt PIC het opslagformaat vast - denk aan int vs str, maar op byte-niveau.",
+    pythonCode: `from decimal import Decimal
 
 getal: int = 0
 naam: str = ""
@@ -141,12 +119,12 @@ def main():
 if __name__ == "__main__":
     main()
 `,
-    docs: [{ title: "COBOL for z/OS 6.5 docs (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0" }],
+    docs: [{ title: "PICTURE clause 6.5 docs (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0?topic=entry-picture-clause" }],
     cobolExplain: {
       text: "PIC (PICTURE) bepaalt hoe een veld wordt opgeslagen/afgedrukt. `9` = numeriek, `X` = tekst, `V` = impliciete decimaal.",
       examples: [
         {
-          title: "PIC basics",
+          title: "PIC examples",
           code: `       01  VELDEN.
            05  GETAL   PIC 9(5).
            05  NAAM    PIC X(20).
@@ -160,18 +138,14 @@ if __name__ == "__main__":
       "Minstens één die V bevat (bijv. 99V99).",
       "Laat ten minste 1 veld zien binnen een 01-structuur (05 onder 01).",
     ],
-    mission:
-      "Je maakt opslag “compile-time duidelijk”. PIC vertelt COBOL hoe het geheugen jouw data moet vasthouden.",
-    funFact:
-      "PIC `V` betekent implied decimal: er wordt geen “decimaalteken” opgeslagen, maar de positie ervan wordt afgeleid.",
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. PICDEMO.
        DATA DIVISION.
        WORKING-STORAGE SECTION.
        01  VELDEN.
-           05  GETAL       PIC _____.    * TODO: numeriek met 9
-           05  NAAM        PIC _____.    * TODO: alfanumeriek met X
-           05  PRIJS       PIC _____.    * TODO: bevat decimaal
+           05  GETAL       _____.    * TODO: numeriek
+           05  NAAM        _____.    * TODO: alfanumeriek
+           05  PRIJS       _____.    * TODO: bevat decimaal
        PROCEDURE DIVISION.
            * TODO: (optioneel) DISPLAY velden
            STOP RUN.
@@ -182,9 +156,8 @@ if __name__ == "__main__":
     title: "Data-hiërarchie",
     summary: "Gebruik levelnummers 01, 05 en/of 77 voor geneste records.",
     pythonHint:
-      "Een 01-groep met 05-kinderen is vergelijkbaar met een dict of dataclass met geneste velden — de nummers vervangen inspringing als structuurbeschrijving.",
-    pythonCode: `# Python-idee: data-hiërarchie via geneste structs (dict/dataclass)
-from dataclasses import dataclass
+      "Een 01-groep met 05-kinderen is vergelijkbaar met een dict of dataclass met geneste velden.",
+    pythonCode: `from dataclasses import dataclass
 from decimal import Decimal
 
 @dataclass
@@ -204,7 +177,7 @@ def main():
 if __name__ == "__main__":
     main()
 `,
-    docs: [{ title: "COBOL for z/OS 6.5 docs (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0" }],
+    docs: [{ title: "Levels of data in a record description entry 6.5 docs (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0?topic=relationships-levels-data-in-record-description-entry" }],
     cobolExplain: {
       text: "Level-nummers vormen je record-structuur: `01` is een groep/record, `05` zijn velden daaronder. `77` is een los, standalone veld.",
       examples: [
@@ -225,21 +198,14 @@ if __name__ == "__main__":
       "Bevat minstens één 05 onder een record.",
       "Optie: standalone 77-niveau (mag ook via 01/05).",
     ],
-    mission:
-      "Je leert data structureren als een ladder: 01 bovenaan, 05 als velden, en 77 voor extra elementen.",
-    funFact:
-      "Level-nummers zijn semantiek + structuur: ze helpen COBOL om je record layout te begrijpen.",
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. HIERARCHY.
        DATA DIVISION.
        WORKING-STORAGE SECTION.
        01  BESTELLING.
            * TODO: voeg minstens één 05-veld toe onder BESTELLING
-           * 05  ORDER-ID    PIC 9(5).
-           * 05  KLANT-NAAM  PIC X(30).
-
        * TODO (optioneel): voeg een 77-element toe
-       * 77  TOTAAL        PIC 9(5)V99.
+    
        PROCEDURE DIVISION.
            STOP RUN.
 `,
@@ -247,19 +213,17 @@ if __name__ == "__main__":
   {
     id: "4",
     title: "Conditionele logica",
-    summary: "Gebruik IF / END-IF voor duidelijke scope (geen vergeten afsluiting).",
+    summary: "Gebruik IF / END-IF voor conditionele logica.",
     pythonHint:
-      "Python gebruikt inspringing; COBOL gebruikt expliciete END-IF — vergelijkbaar met het vermijden van else-drift in geneste ifs.",
-    pythonCode: `# Python-idee: scope met inspringing
-
-flag = "N"
+      "Python gebruikt inspringing; COBOL gebruikt expliciete END-IF - vergelijkbaar met het vermijden van else-drift in geneste ifs.",
+    pythonCode: `flag = "N"
 
 if flag == "Y":
     print("JA")
 else:
     print("NEE")
 `,
-    docs: [{ title: "COBOL for z/OS 6.5 docs (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0" }],
+    docs: [{ title: "IF statement 6.5 docs (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0?topic=statements-if-statement" }],
     cobolExplain: {
       text: "In COBOL sluit je conditie-blokken expliciet af. Gebruik `END-IF` zodat scope altijd duidelijk is (zoals Python-indentation, maar dan met keywords).",
       examples: [
@@ -274,37 +238,28 @@ else:
       ],
     },
     objectives: ["Bevat IF.", "Bevat END-IF.", "Bevat minstens één ELSE."],
-    mission:
-      "Je bouwt een beslissing die altijd netjes sluit. In COBOL is een goede IF vooral: correct ingekaderd door END-IF.",
-    funFact:
-      "END-IF is je scope-marker: zo voorkom je dat je logica per ongeluk “doorloopt”.",
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. BRANCH.
        DATA DIVISION.
        WORKING-STORAGE SECTION.
        01  FLAG PIC X VALUE "N".
        PROCEDURE DIVISION.
-           IF FLAG = "Y"
-              DISPLAY "JA"
-           * TODO: voeg ELSE toe
-           * TODO: sluit af met END-IF
+           * TODO: voeg IF, ELSE, END-IF toe
            STOP RUN.
 `,
   },
   {
     id: "5",
     title: "Iteraties",
-    summary: "Vertaal loop-denken naar PERFORM VARYING ... UNTIL.",
+    summary: "Leer loops met PERFORM VARYING ... UNTIL.",
     pythonHint:
       "Een `for i in range` of `while`-lus wordt vaak PERFORM VARYING ... FROM ... BY ... UNTIL conditie.",
-    pythonCode: `# Python-idee: itereren met een duidelijke exit-conditie
-
-i = 1
+    pythonCode: `i = 1
 while i <= 3:
     print(i)
     i += 1
 `,
-    docs: [{ title: "COBOL for z/OS 6.5 docs (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0" }],
+    docs: [{ title: "PERFORM with VARYING phrase 6.5 docs (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0?topic=statement-perform-varying-phrase" }],
     cobolExplain: {
       text: "`PERFORM VARYING` is je loop: je kiest een control variable en stopt met `UNTIL` (denk: while/for). Sluit af met `END-PERFORM`.",
       examples: [
@@ -318,10 +273,6 @@ while i <= 3:
       ],
     },
     objectives: ["Bevat PERFORM VARYING.", "Bevat UNTIL."],
-    mission:
-      "Loops in COBOL zijn expliciet: jij kiest control variable + exit-conditie. Je vertaalt het ‘itereren’ mindset naar PERFORM.",
-    funFact:
-      "`BY` bepaalt hoe je control variable verandert — zonder BY is je ‘progress’ onduidelijk.",
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. LOOPS.
        DATA DIVISION.
@@ -338,7 +289,7 @@ while i <= 3:
   {
     id: "6",
     title: "Paragrafen",
-    summary: "Structureer logica in paragrafen en roep ze aan met PERFORM naam.",
+    summary: "Structureer logica in paragrafen en roep ze aan met PERFORM.",
     pythonHint:
       "Een paragraaf is als een functie zonder parameters; PERFORM is de aanroep.",
     pythonCode: `# Python-idee: paragraaf = functie (zonder parameters)
@@ -370,10 +321,6 @@ if __name__ == "__main__":
       "Definieer een paragraafnaam (kolom 8+) zoals VERWERK.",
       "Roep die aan met PERFORM (niet alleen PERFORM VARYING).",
     ],
-    mission:
-      "Je maakt code herbruikbaar. Met paragrafen laat je je programma netter aanvoelen, zoals functies in moderne talen.",
-    funFact:
-      "`PERFORM <paragraaf>` is letterlijk “voer dit blok uit” — zonder dat je een nieuwe procedure hoeft te schrijven.",
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. PARAS.
        PROCEDURE DIVISION.
@@ -388,7 +335,7 @@ if __name__ == "__main__":
   {
     id: "7",
     title: "Foutafhandeling (FILE STATUS)",
-    summary: "Verwerk file status — typisch status 35 (file not found).",
+    summary: "Leer werken met FILE STATUS en errors.",
     pythonHint:
       "Zoals het vangen van FileNotFoundError: test FILE STATUS of specifieke waarden zoals '35'.",
     pythonCode: `# Python-idee: try/except vangt "file not found"
@@ -422,10 +369,6 @@ except FileNotFoundError:
       "Bevat FILE STATUS of de letters FS (in context FILE-CONTROL of record).",
       "Bevat de waarde 35 als literal of in een vergelijking.",
     ],
-    mission:
-      "Je maakt je programma robuuster. Als een bestand niet gevonden wordt, vang je dat op met FILE STATUS en geef je de juiste reactie.",
-    funFact:
-      "FILE STATUS is vaak een 2-char code. `'35'` wordt heel vaak gebruikt als ‘file not found’-case in leercontexten.",
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. FILECHK.
        ENVIRONMENT DIVISION.

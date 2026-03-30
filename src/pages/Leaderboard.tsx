@@ -215,7 +215,7 @@ const Leaderboard = () => {
   const podium = rankedUsers.slice(0, 3);
   const rest = rankedUsers.slice(3);
 
-  /** Visual order like a real podium: 2nd (left) — 1st (center, highest) — 3rd (right). */
+  /** Visual order like a real podium: 2nd (left) - 1st (center, highest) - 3rd (right). */
   const podiumSlots: (RankedRow | null)[] =
     podium.length >= 3
       ? [podium[1] ?? null, podium[0] ?? null, podium[2] ?? null]
@@ -243,7 +243,7 @@ const Leaderboard = () => {
     ].join(" ");
   };
 
-  /** Pedestal height only — base alignment comes from parent flex + justify-end */
+  /** Pedestal height only - base alignment comes from parent flex + justify-end */
   const podiumPedestalHeight = (rank: number) => {
     if (rank === 1) return "min-h-[7.5rem] md:min-h-[11rem]";
     if (rank === 2) return "min-h-[5.5rem] md:min-h-[7.5rem]";
@@ -280,7 +280,7 @@ const Leaderboard = () => {
 
         <div className="relative flex items-center justify-between gap-4">
           <div>
-            <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* SYSOUT — GLOBAL RANKING FILE *</p>
+            <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* SYSOUT - GLOBAL RANKING FILE *</p>
             <h1 className="mb-2 text-3xl font-bold tracking-tight">Leaderboard</h1>
             <p className="text-muted-foreground">Top learners by total points</p>
           </div>
@@ -293,11 +293,11 @@ const Leaderboard = () => {
           </div>
         ) : rankedUsers.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
-            Nog geen scores — voltooi levels om punten te verdienen.
+            Nog geen scores - voltooi levels om punten te verdienen.
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Podium: 2nd — 1st — 3rd; shared min-height + justify-end = flush floor; mainframe styling */}
+            {/* Podium: 2nd - 1st - 3rd; shared min-height + justify-end = flush floor; mainframe styling */}
             <div
               className="relative mx-auto flex min-h-[19rem] max-w-3xl flex-row items-stretch justify-center gap-2 pt-8 sm:gap-3 md:min-h-[22rem] md:gap-5"
               aria-label="Top three podium"
@@ -378,9 +378,9 @@ const Leaderboard = () => {
               })}
             </div>
 
-            {/* Full ranking table — mainframe panel */}
+            {/* Full ranking table - mainframe panel */}
             <Card className="mainframe-panel-muted mainframe-card-l-silver overflow-hidden p-0">
-              <MainframeStrip variant="muted" left="SYSOUT — FULL RANKING" right={`ROWS=${rankedUsers.length}`} />
+              <MainframeStrip variant="muted" left="SYSOUT - FULL RANKING" right={`ROWS=${rankedUsers.length}`} />
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>

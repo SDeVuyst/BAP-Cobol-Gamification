@@ -31,7 +31,7 @@ function hasAll(haystack: string, needles: RegExp[], label: string): string[] {
 }
 
 /**
- * Heuristische PoC-validatie — geen echte COBOL-compiler.
+ * Heuristische PoC-validatie - geen echte COBOL-compiler.
  */
 export function validateCobolLevel(levelId: string, code: string): ValidationResult {
   return validateCobolLevelDetailed(levelId, code);

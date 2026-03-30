@@ -60,6 +60,29 @@ const createProfileObject = (data: any): Profile => {
   };
 };
 
+const defaultUsernameFromUserId = (userId: string) =>
+  `user_${userId.replace(/-/g, "").slice(0, 12)}`;
+
+async function upsertProfileRow(
+  user: User,
+  usernameHint?: string,
+): Promise<{ error: Error | null }> {
+  const metaName = user.user_metadata?.username;
+  const username =
+    (usernameHint?.trim() ? usernameHint.trim() : null) ??
+    (typeof metaName === "string" && metaName.trim() ? metaName.trim() : null) ??
+    defaultUsernameFromUserId(user.id);
+  const email = user.email ?? "";
+  if (!email) {
+    return { error: new Error("User has no email; cannot create profile") };
+  }
+  const { error } = await supabase.from("profiles").upsert(
+    { id: user.id, username, email },
+    { onConflict: "id" },
+  );
+  return { error: error ? new Error(error.message) : null };
+}
+
 export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   ...initialState,
 
@@ -140,6 +163,24 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
         .single();
       
       if (error) {
+        const sessionUser = get().user;
+        if (error.code === "PGRST116" && sessionUser?.id === userId) {
+          const { error: upsertErr } = await upsertProfileRow(sessionUser);
+          if (!upsertErr) {
+            const retry = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", userId)
+              .single();
+            if (!retry.error && retry.data) {
+              set({
+                profile: createProfileObject(retry.data),
+                isFetchingProfile: false,
+              });
+              return;
+            }
+          }
+        }
         console.error("👤 [PROFILE] Error fetching profile:", error);
         toast({
           title: "Error loading profile",
@@ -199,8 +240,28 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       });
       if (error) throw error;
       if (!data.user) throw new Error("Signup succeeded but no user was returned");
-      
-      toast({ title: "Signup successful", description: "Please check your email to verify your account if required." });
+
+      if (data.session) {
+        const { error: profileErr } = await upsertProfileRow(data.user, username);
+        if (profileErr) {
+          console.error("📝 [SIGNUP] Profile upsert failed:", profileErr);
+          toast({
+            title: "Account created",
+            description: "We could not save your profile yet. Try signing in again.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Signup successful",
+            description: "Welcome! You are signed in.",
+          });
+        }
+      } else {
+        toast({
+          title: "Signup successful",
+          description: "Please check your email to verify your account.",
+        });
+      }
     } catch (error: any) {
       console.error("📝 [SIGNUP] Signup error:", error);
       toast({ title: "Signup failed", description: error.message, variant: "destructive" });

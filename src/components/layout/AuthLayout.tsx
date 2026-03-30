@@ -20,7 +20,7 @@ const AuthLayout = ({ children }: AuthLayoutProps) => {
             draggable={false}
           />
           <div>
-            <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* AUTH — ENVIRONMENT DIVISION *</p>
+            <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* AUTH - ENVIRONMENT DIVISION *</p>
             <h1 className="text-2xl font-bold tracking-tight text-slate-100 sm:text-3xl">Learn Cobol</h1>
           </div>
         </div>

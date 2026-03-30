@@ -143,7 +143,7 @@ const SusSurvey = () => {
                     <div key={s.v} className="flex items-center space-x-2">
                       <RadioGroupItem value={s.v} id={`q${item.id}-${s.v}`} />
                       <Label htmlFor={`q${item.id}-${s.v}`} className="font-normal cursor-pointer text-sm">
-                        {s.v} — {s.label}
+                        {s.v} - {s.label}
                       </Label>
                     </div>
                   ))}

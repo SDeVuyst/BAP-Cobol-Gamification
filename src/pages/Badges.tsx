@@ -204,7 +204,7 @@ const Badges = () => {
 
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* BADGE REGISTRY — FULL CATALOG *</p>
+            <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* BADGE REGISTRY - FULL CATALOG *</p>
             <h1 className="text-3xl font-bold tracking-tight">Badges</h1>
             <p className="text-muted-foreground">Bekijk welke badges je al hebt en hoe je de rest unlockt.</p>
           </div>
@@ -332,7 +332,7 @@ const Badges = () => {
                             </TooltipTrigger>
                             <TooltipContent side="top" className="max-w-[300px] text-xs leading-snug">
                               <div className="space-y-1">
-                                <div>{howTo || "—"}</div>
+                                <div>{howTo || "-"}</div>
                                 <div className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
                                   Difficulty: {getBadgeDifficultyLabel(difficulty)}
                                 </div>

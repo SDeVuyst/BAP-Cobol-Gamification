@@ -131,7 +131,7 @@ const Friends = () => {
 
         <div className="relative flex items-center justify-between gap-4">
           <div>
-            <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* LINKAGE SECTION — SOCIAL PROGRAM *</p>
+            <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* LINKAGE SECTION - SOCIAL PROGRAM *</p>
             <h1 className="mb-2 text-3xl font-bold tracking-tight">Friends</h1>
             <p className="text-muted-foreground">Manage your friends and stay accountable together.</p>
           </div>
@@ -163,7 +163,7 @@ const Friends = () => {
           <TabsContents>
             <TabsContent value="friends">
               <Card className="mainframe-panel-muted mainframe-card-l-silver overflow-hidden p-0">
-                <MainframeStrip variant="muted" left="FRIEND LIST — SYSIN" right={`ROWS=${displayFriends.length}`} />
+                <MainframeStrip variant="muted" left="FRIEND LIST - SYSIN" right={`ROWS=${displayFriends.length}`} />
                 <CardContent className="space-y-3 p-4">
                   {friendsLoading ? (
                     <div className="py-6 text-center text-sm text-slate-500">Loading friends...</div>
@@ -240,7 +240,7 @@ const Friends = () => {
 
             <TabsContent value="add">
               <Card className="mainframe-panel-muted mainframe-card-l-sky overflow-hidden p-0">
-                <MainframeStrip variant="muted" left="USER SEARCH — CATALOG" right="FIND" />
+                <MainframeStrip variant="muted" left="USER SEARCH - CATALOG" right="FIND" />
                 <CardContent className="space-y-6 p-4">
                   <div className="flex space-x-2">
                     <div className="flex-1">
@@ -314,7 +314,7 @@ const Friends = () => {
 
             <TabsContent value="requests">
               <Card className="mainframe-panel-muted mainframe-card-l-silver overflow-hidden p-0">
-                <MainframeStrip variant="muted" left="PENDING — INPUT QUEUE" right={`CNT=${friendRequests.length}`} />
+                <MainframeStrip variant="muted" left="PENDING - INPUT QUEUE" right={`CNT=${friendRequests.length}`} />
                 <CardContent className="space-y-3 p-4">
                   {friendsLoading ? (
                     <div className="py-4 text-center text-slate-500">Loading requests...</div>

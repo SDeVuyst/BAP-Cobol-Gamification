@@ -132,7 +132,7 @@ const MainLayout = ({
   return (
     <div className="flex h-screen bg-[#060608]">
       <aside className="mainframe-sidebar hidden w-64 flex-col md:flex">
-        <MainframeStrip variant="muted" left="NAV — PRIMARY" right="ONLINE" />
+        <MainframeStrip variant="muted" left="NAV - PRIMARY" right="ONLINE" />
         <div className="flex items-center gap-3 border-b border-slate-700/40 px-4 py-3">
           <img
             src="/logo.png"

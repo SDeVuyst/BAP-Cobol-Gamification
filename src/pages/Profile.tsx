@@ -1,6 +1,7 @@
 import { useAuthStore } from "@/stores/authStore";
+import { useFriendsStore } from "@/stores/friendsStore";
 import MainLayout from "@/components/layout/MainLayout";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { COBOL_LEVELS } from "@/data/cobolLevels";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useMemo, useState } from "react";
@@ -14,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarUpload } from "@/components/avatar";
-import { User, Trophy, Award, ArrowRight, Gem, Sparkles, ShieldCheck, Crown, Flame, Target, Zap, Medal, TrendingUp, Lock } from "lucide-react";
+import { User, Trophy, Award, ArrowRight, Gem, Sparkles, Crown, Target, Zap, Medal, TrendingUp, Lock, UserMinus } from "lucide-react";
 import { MainframeStrip } from "@/components/mainframe/MainframeStrip";
 import { cn } from "@/lib/utils";
 
@@ -23,12 +24,94 @@ type NeighborRow = {
   username: string;
   avatarUrl?: string | null;
   totalPoints: number;
+  rank: number;
+};
+
+type RankedCandidate = NeighborRow & {
+  isCurrentUser: boolean;
+};
+
+const DUMMY_LEADERBOARD_USERS: Array<{ username: string; levelsCompleted: number }> = [
+  { username: "Ada-COBOL", levelsCompleted: 7 },
+  { username: "JCLJedi", levelsCompleted: 6 },
+  { username: "PICClausePro", levelsCompleted: 6 },
+  { username: "MainframeMaven", levelsCompleted: 5 },
+  { username: "CopybookCrafter", levelsCompleted: 5 },
+  { username: "BatchRunner", levelsCompleted: 4 },
+  { username: "DebuggingDept", levelsCompleted: 4 },
+  { username: "PERFORMVARYING", levelsCompleted: 3 },
+  { username: "WorkingStorage", levelsCompleted: 3 },
+  { username: "Section77", levelsCompleted: 2 },
+  { username: "EBCDICEnjoyer", levelsCompleted: 2 },
+  { username: "ACCEPTDISPLAY", levelsCompleted: 1 },
+  { username: "CICSComet", levelsCompleted: 1 },
+  { username: "VSAMVoyager", levelsCompleted: 0 },
+  { username: "FDFileFan", levelsCompleted: 0 },
+];
+
+function hashToUnitInterval(seed: string) {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 0xffffffff;
+}
+
+function makeDummyAvatarUrl(username: string) {
+  const seed = encodeURIComponent(username);
+  return `https://api.dicebear.com/7.x/identicon/png?seed=${seed}&size=128`;
+}
+
+function pointsForCompletedLevels(levelsCompleted: number, seed: string) {
+  const r = hashToUnitInterval(seed);
+  const perLevel = 220 + Math.round(r * 120);
+  const base = levelsCompleted * perLevel;
+  const bonus = Math.round(hashToUnitInterval(`${seed}|bonus`) * 180);
+  return Math.max(0, base + bonus);
+}
+
+function addDevDummyRowsIfNeeded(rows: RankedCandidate[], currentUserId?: string, minRows = 15): RankedCandidate[] {
+  if (!import.meta.env.DEV) return rows;
+  if (rows.length >= minRows) return rows;
+
+  const existingUsernames = new Set(rows.map((r) => r.username));
+  const padded: RankedCandidate[] = [...rows];
+
+  for (let i = 0; i < DUMMY_LEADERBOARD_USERS.length && padded.length < minRows; i++) {
+    const d = DUMMY_LEADERBOARD_USERS[i];
+    if (existingUsernames.has(d.username)) continue;
+    padded.push({
+      id: `dummy-${i}`,
+      username: d.username,
+      avatarUrl: makeDummyAvatarUrl(d.username),
+      totalPoints: pointsForCompletedLevels(d.levelsCompleted, d.username),
+      isCurrentUser: false,
+    });
+  }
+
+  return padded
+    .map((r) => ({ ...r, isCurrentUser: currentUserId ? r.id === currentUserId : r.isCurrentUser }))
+    .sort((a, b) => (b.totalPoints ?? 0) - (a.totalPoints ?? 0));
+}
+
+type ProfileDisplay = {
+  id: string;
+  username: string;
+  email: string | null;
+  avatarUrl: string | null;
+  totalPoints: number;
+  levelsCompleted: number;
 };
 
 const Profile = () => {
-  const profile = useAuthStore((state) => state.profile);
+  const myProfile = useAuthStore((state) => state.profile);
   const updateAvatarUrl = useAuthStore((state) => state.updateAvatarUrl);
   const navigate = useNavigate();
+  const { friendId } = useParams<{ friendId: string }>();
+  const { friends, removeFriend, loading: friendsLoading } = useFriendsStore();
+  const [viewedFriend, setViewedFriend] = useState<ProfileDisplay | null>(null);
+  const [friendFetchStatus, setFriendFetchStatus] = useState<"idle" | "loading" | "ok" | "missing">("idle");
   const [userBadges, setUserBadges] = useState<{ badge_id: string }[]>([]);
   const [definitions, setDefinitions] = useState<BadgeDefinition[]>([]);
   const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null);
@@ -37,14 +120,70 @@ const Profile = () => {
     below: NeighborRow | null;
   }>({ above: null, below: null });
 
+  const isViewingFriend = Boolean(friendId && myProfile?.id && friendId !== myProfile.id);
+  const isOwnProfile = !isViewingFriend;
+  const activeProfile: ProfileDisplay | null = isViewingFriend ? viewedFriend : myProfile;
+
   useEffect(() => {
-    if (!profile?.id) return;
+    if (friendId && myProfile?.id && friendId === myProfile.id) {
+      navigate("/profile", { replace: true });
+    }
+  }, [friendId, myProfile?.id, navigate]);
+
+  useEffect(() => {
+    if (!isViewingFriend || !friendId) {
+      setFriendFetchStatus("idle");
+      setViewedFriend(null);
+      return;
+    }
+    let cancelled = false;
+    setFriendFetchStatus("loading");
+    setViewedFriend(null);
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, username, avatar_url, total_points, levels_completed")
+          .eq("id", friendId)
+          .single();
+        if (cancelled) return;
+        if (error || !data) {
+          setFriendFetchStatus("missing");
+          setViewedFriend(null);
+          return;
+        }
+        setViewedFriend({
+          id: data.id,
+          username: data.username,
+          email: null,
+          avatarUrl: data.avatar_url,
+          totalPoints: data.total_points ?? 0,
+          levelsCompleted: data.levels_completed ?? 0,
+        });
+        setFriendFetchStatus("ok");
+      } catch {
+        if (!cancelled) {
+          setFriendFetchStatus("missing");
+          setViewedFriend(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isViewingFriend, friendId]);
+
+  const isFriend =
+    Boolean(friendId && friends.some((f) => f.id === friendId));
+
+  useEffect(() => {
+    if (!activeProfile?.id) return;
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from("user_badges")
         .select("badge_id")
-        .eq("user_id", profile.id);
+        .eq("user_id", activeProfile.id);
       if (cancelled) return;
       if (error) {
         console.error(error);
@@ -55,7 +194,7 @@ const Profile = () => {
     return () => {
       cancelled = true;
     };
-  }, [profile?.id]);
+  }, [activeProfile?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,13 +213,13 @@ const Profile = () => {
 
   /** Rank = 1 + number of profiles with strictly higher total_points (ties share the same rank number). */
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!activeProfile?.id) return;
     let cancelled = false;
     (async () => {
       const { count, error } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true })
-        .gt("total_points", profile.totalPoints);
+        .gt("total_points", activeProfile.totalPoints);
       if (cancelled || error) {
         if (error) console.error(error);
         return;
@@ -88,19 +227,21 @@ const Profile = () => {
       const rank = (count ?? 0) + 1;
       setLeaderboardRank(rank);
 
-      // Leaderboard rank badges
+      if (!isOwnProfile) return;
+
+      // Leaderboard rank badges (viewer only — never write badges for someone else's profile)
       const earned: string[] = [];
       if (rank <= 50) earned.push("leaderboard_top_50");
       if (rank <= 25) earned.push("leaderboard_top_25");
       if (rank <= 10) earned.push("leaderboard_top_10");
       if (rank <= 5) earned.push("leaderboard_top_5");
       if (rank === 1) earned.push("leaderboard_champion");
-      await upsertUserBadges(profile.id, earned);
+      await upsertUserBadges(activeProfile.id, earned);
     })();
     return () => {
       cancelled = true;
     };
-  }, [profile?.id, profile?.totalPoints]);
+  }, [activeProfile?.id, activeProfile?.totalPoints, isOwnProfile]);
 
   const badgeCards = useMemo(() => {
     const earned = new Set(userBadges.map((b) => b.badge_id));
@@ -116,69 +257,78 @@ const Profile = () => {
     });
   }, [userBadges, definitions]);
 
-  const badgeTooltipText = (id: string) => badgeCards.find((b) => b.id === id)?.howTo || "—";
+  const badgeTooltipText = (id: string) => badgeCards.find((b) => b.id === id)?.howTo || "-";
 
   const totalBadges = definitions.length;
   const lockedCount = Math.max(0, totalBadges - userBadges.length);
   const previewBadges = badgeCards.filter((b) => b.isEarned).slice(0, 3);
   const nextLockedBadge = badgeCards.find((b) => !b.isEarned) ?? null;
 
-  const levelProgress = profile ? (profile.levelsCompleted / COBOL_LEVELS.length) * 100 : 0;
-  const levelsRemaining = Math.max(0, COBOL_LEVELS.length - (profile?.levelsCompleted ?? 0));
-  const nextLevelNumber = Math.min(COBOL_LEVELS.length, (profile?.levelsCompleted ?? 0) + 1);
+  const levelProgress = activeProfile ? (activeProfile.levelsCompleted / COBOL_LEVELS.length) * 100 : 0;
+  const levelsRemaining = Math.max(0, COBOL_LEVELS.length - (activeProfile?.levelsCompleted ?? 0));
+  const nextLevelNumber = Math.min(COBOL_LEVELS.length, (activeProfile?.levelsCompleted ?? 0) + 1);
   const currentLevelNumber = levelsRemaining === 0 ? COBOL_LEVELS.length : nextLevelNumber;
   const progressLabel = `${Math.round(Math.min(100, levelProgress || 0))}%`;
 
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!activeProfile?.id) return;
     let cancelled = false;
     (async () => {
-      const points = profile.totalPoints ?? 0;
-      const [aboveRes, belowRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id, username, avatar_url, total_points")
-          .gt("total_points", points)
-          .order("total_points", { ascending: true })
-          .limit(1),
-        supabase
-          .from("profiles")
-          .select("id, username, avatar_url, total_points")
-          .lt("total_points", points)
-          .order("total_points", { ascending: false })
-          .limit(1),
-      ]);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, username, avatar_url, total_points")
+        .order("total_points", { ascending: false })
+        .limit(75);
 
       if (cancelled) return;
-      if (aboveRes.error) console.error(aboveRes.error);
-      if (belowRes.error) console.error(belowRes.error);
+      if (error) {
+        console.error(error);
+        return;
+      }
 
-      const aboveRaw = aboveRes.data?.[0];
-      const belowRaw = belowRes.data?.[0];
+      const realRows: RankedCandidate[] = (data ?? []).map((p) => ({
+        id: p.id,
+        username: p.username,
+        avatarUrl: p.avatar_url,
+        totalPoints: p.total_points ?? 0,
+        isCurrentUser: p.id === activeProfile.id,
+      }));
+
+      const rankedRows = addDevDummyRowsIfNeeded(realRows, activeProfile.id);
+      const myIndex = rankedRows.findIndex((r) => r.id === activeProfile.id);
+      const aboveRaw = myIndex > 0 ? rankedRows[myIndex - 1] : null;
+      const belowRaw = myIndex >= 0 ? rankedRows[myIndex + 1] ?? null : null;
+      const myRank = myIndex >= 0 ? myIndex + 1 : null;
 
       setLeaderboardNeighbors({
         above: aboveRaw
           ? {
               id: aboveRaw.id,
               username: aboveRaw.username,
-              avatarUrl: aboveRaw.avatar_url,
-              totalPoints: aboveRaw.total_points ?? 0,
+              avatarUrl: aboveRaw.avatarUrl,
+              totalPoints: aboveRaw.totalPoints ?? 0,
+              rank: myIndex,
             }
           : null,
         below: belowRaw
           ? {
               id: belowRaw.id,
               username: belowRaw.username,
-              avatarUrl: belowRaw.avatar_url,
-              totalPoints: belowRaw.total_points ?? 0,
+              avatarUrl: belowRaw.avatarUrl,
+              totalPoints: belowRaw.totalPoints ?? 0,
+              rank: myIndex + 2,
             }
           : null,
       });
+
+      if (myRank != null) {
+        setLeaderboardRank(myRank);
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [profile?.id, profile?.totalPoints]);
+  }, [activeProfile?.id, activeProfile?.totalPoints]);
 
   const leaderboardTier = useMemo(() => {
     const rank = leaderboardRank;
@@ -202,11 +352,50 @@ const Profile = () => {
     updateAvatarUrl(filePath || null);
   };
 
-  if (!profile) {
+  if (!myProfile) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-96">
           <p>Loading your profile...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (isViewingFriend && friendFetchStatus === "loading") {
+    return (
+      <MainLayout>
+        <div className="flex h-96 items-center justify-center">
+          <p>Loading profile...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (isViewingFriend && friendFetchStatus === "missing") {
+    return (
+      <MainLayout>
+        <div className="mainframe-page relative animate-fade-in py-12 text-center">
+          <User className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+          <h3 className="text-lg font-medium">Profile not found</h3>
+          <p className="mb-4 text-muted-foreground">This user profile could not be loaded.</p>
+          <Button
+            variant="outline"
+            className="border-slate-600/50 bg-black/30 font-mono text-xs uppercase tracking-wide text-slate-200"
+            onClick={() => navigate("/friends")}
+          >
+            Back to Friends
+          </Button>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!activeProfile) {
+    return (
+      <MainLayout>
+        <div className="flex h-96 items-center justify-center">
+          <p>Loading profile...</p>
         </div>
       </MainLayout>
     );
@@ -220,18 +409,41 @@ const Profile = () => {
 
         <div className="relative flex items-center justify-between gap-4">
           <div>
-            <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* USER SESSION — CONFIGURATION SECTION *</p>
-            <h1 className="mb-2 text-3xl font-bold tracking-tight">My Profile</h1>
-            <p className="text-muted-foreground">Learning stats and account.</p>
+            <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* USER SESSION - CONFIGURATION SECTION *</p>
+            <h1 className="mb-2 text-3xl font-bold tracking-tight">
+              {isOwnProfile ? "My Profile" : `${activeProfile.username}'s Profile`}
+            </h1>
+            <p className="text-muted-foreground">
+              {isOwnProfile ? "Learning stats and account." : "Learning stats and progress."}
+            </p>
           </div>
-          <User className="h-8 w-8 shrink-0 text-slate-400" />
+          {isOwnProfile ? (
+            <User className="h-8 w-8 shrink-0 text-slate-400" />
+          ) : isFriend ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 border-slate-600/50 bg-black/30 font-mono text-xs uppercase tracking-wide text-destructive hover:border-red-900/50 hover:bg-red-950/20 hover:text-destructive"
+              disabled={friendsLoading}
+              aria-label={`Remove ${activeProfile.username} as friend`}
+              onClick={async () => {
+                await removeFriend(activeProfile.id);
+                navigate("/friends");
+              }}
+            >
+              <UserMinus className="mr-2 h-4 w-4" />
+              Remove Friend
+            </Button>
+          ) : (
+            <User className="h-8 w-8 shrink-0 text-slate-400" />
+          )}
         </div>
 
         <Card className="mainframe-panel-muted mainframe-card-l-silver mf-card-interactive overflow-hidden">
           <MainframeStrip
             variant="muted"
             left="IDENTIFICATION DIVISION"
-            right={`RANK ${leaderboardRank ?? "…"} · PTS ${profile.totalPoints}`}
+            right={`RANK ${leaderboardRank ?? "…"} · PTS ${activeProfile.totalPoints}`}
           />
           <CardContent className="relative pt-6">
             <div className="pointer-events-none absolute inset-0 mf-shimmer-overlay opacity-70" />
@@ -240,7 +452,11 @@ const Profile = () => {
               <div className="relative flex-shrink-0">
                 <div className="pointer-events-none absolute -inset-3 rounded-full bg-gradient-to-br from-cyan-500/15 via-transparent to-emerald-500/10 blur-xl" />
                 <div className="relative">
-                  <AvatarUpload currentAvatarUrl={profile.avatarUrl} onUpload={handleAvatarUpload} size={120} />
+                  {isOwnProfile ? (
+                    <AvatarUpload currentAvatarUrl={activeProfile.avatarUrl} onUpload={handleAvatarUpload} size={120} />
+                  ) : (
+                    <Avatar src={activeProfile.avatarUrl} fallback={activeProfile.username} size={120} className="ring-2 ring-slate-700/50" />
+                  )}
                 </div>
 
                 <div className="relative mt-3 flex flex-wrap items-center justify-center gap-2">
@@ -258,8 +474,10 @@ const Profile = () => {
               </div>
 
               <div className="flex-1">
-                <h2 className="font-mono text-2xl font-bold tracking-tight text-slate-100">{profile.username}</h2>
-                <p className="font-mono text-sm text-slate-500">{profile.email}</p>
+                <h2 className="font-mono text-2xl font-bold tracking-tight text-slate-100">{activeProfile.username}</h2>
+                {isOwnProfile && activeProfile.email ? (
+                  <p className="font-mono text-sm text-slate-500">{activeProfile.email}</p>
+                ) : null}
 
                 <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div className="rounded-lg border border-slate-700/45 bg-black/35 px-3 py-2 text-left">
@@ -275,9 +493,9 @@ const Profile = () => {
                     <div className="font-mono text-[10px] uppercase tracking-widest text-slate-500">Total points</div>
                     <div className="mt-1 flex items-center gap-2">
                       <Gem className="h-4 w-4 text-emerald-500/80" />
-                      <div className="font-mono text-sm font-semibold text-slate-100">{profile.totalPoints} PTS</div>
+                      <div className="font-mono text-sm font-semibold text-slate-100">{activeProfile.totalPoints} PTS</div>
                       <div className="ml-auto font-mono text-[11px] text-slate-400">
-                        LVL {profile.levelsCompleted}/{COBOL_LEVELS.length}
+                        LVL {activeProfile.levelsCompleted}/{COBOL_LEVELS.length}
                       </div>
                     </div>
                   </div>
@@ -322,7 +540,7 @@ const Profile = () => {
                       </div>
                     </div>
                     <div className="mt-1 font-mono text-[11px] text-slate-400">
-                      {levelsRemaining === 0 ? "All levels complete — victory lap time." : `${levelsRemaining} levels remaining`}
+                      {levelsRemaining === 0 ? "All levels complete - victory lap time." : `${levelsRemaining} levels remaining`}
                     </div>
                   </div>
                   <div className="shrink-0">
@@ -345,7 +563,7 @@ const Profile = () => {
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                       <div className="font-mono text-sm font-semibold text-slate-100">
-                        {profile.levelsCompleted}/{COBOL_LEVELS.length} levels
+                        {activeProfile.levelsCompleted}/{COBOL_LEVELS.length} levels
                       </div>
                       <div className="inline-flex items-center gap-1 rounded border border-slate-600/40 bg-black/35 px-2 py-0.5 font-mono text-[11px] text-cyan-600/90">
                         <Zap className="h-3.5 w-3.5" />
@@ -373,8 +591,8 @@ const Profile = () => {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   {Array.from({ length: COBOL_LEVELS.length }).map((_, idx) => {
-                    const done = idx < profile.levelsCompleted;
-                    const active = idx === profile.levelsCompleted;
+                    const done = idx < activeProfile.levelsCompleted;
+                    const active = idx === activeProfile.levelsCompleted;
                     return (
                       <div
                         key={idx}
@@ -396,18 +614,20 @@ const Profile = () => {
                 </div>
               </div>
 
-              <Button
-                variant="outline"
-                className="mt-2 w-full border-slate-600/50 bg-black/30 font-mono text-xs uppercase tracking-wide text-slate-200 hover:border-cyan-700/40 hover:bg-cyan-950/20 hover:text-slate-50"
-                onClick={() => navigate("/learn")}
-              >
-                Continue learning <ArrowRight className="ml-1 h-4 w-4" />
-              </Button>
+              {isOwnProfile && (
+                <Button
+                  variant="outline"
+                  className="mt-2 w-full border-slate-600/50 bg-black/30 font-mono text-xs uppercase tracking-wide text-slate-200 hover:border-cyan-700/40 hover:bg-cyan-950/20 hover:text-slate-50"
+                  onClick={() => navigate("/learn")}
+                >
+                  Continue learning <ArrowRight className="ml-1 h-4 w-4" />
+                </Button>
+              )}
             </CardContent>
           </Card>
 
           <Card className="mainframe-panel-muted mainframe-card-l-silver mf-card-interactive overflow-hidden">
-            <MainframeStrip variant="muted" left="LEADERBOARD — JOB STEP" right={leaderboardRank != null ? `RANK=${leaderboardRank}` : "…"} />
+            <MainframeStrip variant="muted" left="LEADERBOARD - JOB STEP" right={leaderboardRank != null ? `RANK=${leaderboardRank}` : "…"} />
             <CardHeader>
               <CardTitle className="flex items-center text-lg font-semibold tracking-tight text-slate-100">
                 <Trophy className="mr-2 h-5 w-5 text-slate-400" /> Leaderboard
@@ -438,7 +658,7 @@ const Profile = () => {
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <div className="inline-flex items-center gap-2 rounded border border-slate-600/40 bg-black/35 px-2.5 py-1 font-mono text-[11px] text-slate-300">
                         <Trophy className="h-3.5 w-3.5 text-cyan-600/80" />
-                        {profile.totalPoints} PTS
+                        {activeProfile.totalPoints} PTS
                       </div>
                       <div className="inline-flex items-center gap-2 rounded border border-slate-600/40 bg-black/35 px-2.5 py-1 font-mono text-[11px] text-slate-300">
                         <TrendingUp className="h-3.5 w-3.5 text-emerald-500/80" />
@@ -462,8 +682,14 @@ const Profile = () => {
                     { kind: "above" as const, label: "Above", row: leaderboardNeighbors.above },
                     {
                       kind: "you" as const,
-                      label: "You",
-                      row: { id: profile.id, username: profile.username, avatarUrl: profile.avatarUrl, totalPoints: profile.totalPoints ?? 0 },
+                      label: isOwnProfile ? "You" : activeProfile.username,
+                      row: {
+                        id: activeProfile.id,
+                        username: activeProfile.username,
+                        avatarUrl: activeProfile.avatarUrl,
+                        totalPoints: activeProfile.totalPoints ?? 0,
+                        rank: leaderboardRank ?? 0,
+                      },
                     },
                     { kind: "below" as const, label: "Below", row: leaderboardNeighbors.below },
                   ] as const).map(({ kind, label, row }) => {
@@ -493,11 +719,13 @@ const Profile = () => {
                                 <div className={isYou ? "truncate font-mono text-xs font-semibold text-cyan-100/95" : "truncate font-mono text-xs text-slate-200"}>
                                   {row.username}
                                 </div>
-                                <div className="font-mono text-[10px] text-slate-500">PTS {row.totalPoints}</div>
+                                <div className="font-mono text-[10px] text-slate-500">
+                                  #{row.rank} · PTS {row.totalPoints}
+                                </div>
                               </div>
                             </>
                           ) : (
-                            <div className="font-mono text-xs text-slate-500">—</div>
+                            <div className="font-mono text-xs text-slate-500">-</div>
                           )}
                         </div>
                       </div>
@@ -538,7 +766,7 @@ const Profile = () => {
             {nextLockedBadge && (
               <div className="mb-3 text-xs text-slate-500">
                 Volgende badge: <span className="font-mono text-slate-300">{nextLockedBadge.label}</span>
-                <span className="mx-2 text-slate-700/80">—</span>
+                <span className="mx-2 text-slate-700/80">-</span>
                 <span className="text-slate-500">{badgeTooltipText(nextLockedBadge.id)}</span>
               </div>
             )}
@@ -547,7 +775,7 @@ const Profile = () => {
               <div className="flex flex-wrap items-center gap-2">
                 {previewBadges.length === 0 ? (
                   <div className="rounded-md border border-slate-700/45 bg-black/25 px-3 py-2 font-mono text-xs text-slate-500">
-                    No badges yet — complete a level to earn your first.
+                    No badges yet - complete a level to earn your first.
                   </div>
                 ) : (
                   previewBadges.map(({ id, label, Icon, difficulty }) => (

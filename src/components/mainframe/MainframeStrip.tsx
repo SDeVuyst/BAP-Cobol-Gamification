@@ -4,7 +4,7 @@ type MainframeStripProps = {
   left: string;
   right?: string;
   className?: string;
-  /** Muted slate/cyan strip — less green (friends, softer panels). */
+  /** Muted slate/cyan strip - less green (friends, softer panels). */
   variant?: "default" | "muted";
 };
 

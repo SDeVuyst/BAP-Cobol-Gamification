@@ -52,7 +52,7 @@ const Learn = () => {
         <div className="mainframe-glow-soft-br" />
 
         <div className="relative">
-          <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* COURSE CATALOG — ENVIRONMENT DIVISION *</p>
+          <p className="mb-1 font-mono text-[10px] text-slate-500 md:text-xs">* COURSE CATALOG - ENVIRONMENT DIVISION *</p>
           <h1 className="mb-2 text-3xl font-bold tracking-tight">Learn COBOL</h1>
           <p className="text-muted-foreground">
             Zeven levels van Python-denken naar COBOL-structuur (elk level gebruikt heuristische validatie)
@@ -62,7 +62,7 @@ const Learn = () => {
         <Card className="mainframe-panel-muted mainframe-card-l-silver overflow-hidden">
           <MainframeStrip
             variant="muted"
-            left="WORKING-STORAGE — PROGRESS"
+            left="WORKING-STORAGE - PROGRESS"
             right={`LVL ${completedCount}/${COBOL_LEVELS.length}`}
           />
           <CardHeader>
@@ -99,7 +99,7 @@ const Learn = () => {
               >
                 <MainframeStrip
                   variant="muted"
-                  left={`LEVEL ${level.id} — SEGMENT`}
+                  left={`LEVEL ${level.id} - SEGMENT`}
                   right={done ? "STATUS=COMPLETE" : locked ? "STATUS=LOCKED" : "STATUS=PENDING"}
                 />
                 <CardHeader className="flex flex-row items-start justify-between gap-4">
