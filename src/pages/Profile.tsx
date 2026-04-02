@@ -63,7 +63,9 @@ function makeDummyAvatarUrl(username: string) {
   return `https://api.dicebear.com/7.x/identicon/png?seed=${seed}&size=128`;
 }
 
-function pointsForCompletedLevels(levelsCompleted: number, seed: string) {
+const MAX_DUMMY_LEADERBOARD_POINTS = 750;
+
+function rawDummyPointsForLevels(levelsCompleted: number, seed: string) {
   const r = hashToUnitInterval(seed);
   const perLevel = 220 + Math.round(r * 120);
   const base = levelsCompleted * perLevel;
@@ -71,23 +73,46 @@ function pointsForCompletedLevels(levelsCompleted: number, seed: string) {
   return Math.max(0, base + bonus);
 }
 
-function addDevDummyRowsIfNeeded(rows: RankedCandidate[], currentUserId?: string, minRows = 15): RankedCandidate[] {
-  if (!import.meta.env.DEV) return rows;
-  if (rows.length >= minRows) return rows;
+function deterministicDummyPointsBelowTop(seed: string) {
+  return 50 + Math.floor(hashToUnitInterval(`${seed}|below750`) * 699);
+}
 
+function addDummyRowsIfNeeded(rows: RankedCandidate[], currentUserId?: string): RankedCandidate[] {
   const existingUsernames = new Set(rows.map((r) => r.username));
   const padded: RankedCandidate[] = [...rows];
 
-  for (let i = 0; i < DUMMY_LEADERBOARD_USERS.length && padded.length < minRows; i++) {
+  const toAdd: Array<{ index: number; def: (typeof DUMMY_LEADERBOARD_USERS)[number] }> = [];
+  for (let i = 0; i < DUMMY_LEADERBOARD_USERS.length; i++) {
     const d = DUMMY_LEADERBOARD_USERS[i];
     if (existingUsernames.has(d.username)) continue;
-    padded.push({
-      id: `dummy-${i}`,
-      username: d.username,
-      avatarUrl: makeDummyAvatarUrl(d.username),
-      totalPoints: pointsForCompletedLevels(d.levelsCompleted, d.username),
-      isCurrentUser: false,
-    });
+    toAdd.push({ index: i, def: d });
+  }
+
+  if (toAdd.length > 0) {
+    let topWinner = 0;
+    let topRaw = rawDummyPointsForLevels(toAdd[0].def.levelsCompleted, toAdd[0].def.username);
+    for (let j = 1; j < toAdd.length; j++) {
+      const { def } = toAdd[j];
+      const raw = rawDummyPointsForLevels(def.levelsCompleted, def.username);
+      if (raw > topRaw || (raw === topRaw && def.username < toAdd[topWinner].def.username)) {
+        topRaw = raw;
+        topWinner = j;
+      }
+    }
+
+    for (let j = 0; j < toAdd.length; j++) {
+      const { index: i, def: d } = toAdd[j];
+      const totalPoints =
+        j === topWinner ? MAX_DUMMY_LEADERBOARD_POINTS : deterministicDummyPointsBelowTop(d.username);
+      padded.push({
+        id: `dummy-${i}`,
+        username: d.username,
+        avatarUrl: makeDummyAvatarUrl(d.username),
+        totalPoints,
+        rank: 0,
+        isCurrentUser: false,
+      });
+    }
   }
 
   return padded
@@ -286,15 +311,16 @@ const Profile = () => {
         return;
       }
 
-      const realRows: RankedCandidate[] = (data ?? []).map((p) => ({
+      const realRows: RankedCandidate[] = (data ?? []).map((p, index) => ({
         id: p.id,
         username: p.username,
         avatarUrl: p.avatar_url,
         totalPoints: p.total_points ?? 0,
+        rank: index + 1,
         isCurrentUser: p.id === activeProfile.id,
       }));
 
-      const rankedRows = addDevDummyRowsIfNeeded(realRows, activeProfile.id);
+      const rankedRows = addDummyRowsIfNeeded(realRows, activeProfile.id);
       const myIndex = rankedRows.findIndex((r) => r.id === activeProfile.id);
       const aboveRaw = myIndex > 0 ? rankedRows[myIndex - 1] : null;
       const belowRaw = myIndex >= 0 ? rankedRows[myIndex + 1] ?? null : null;

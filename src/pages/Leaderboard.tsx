@@ -67,8 +67,9 @@ function makeDummyAvatarUrl(username: string) {
   return `https://api.dicebear.com/7.x/identicon/png?seed=${seed}&size=128`;
 }
 
-function pointsForCompletedLevels(levelsCompleted: number, seed: string) {
-  // Keep points "realistic" for 0..7 levels: a few hundred per level + small variance.
+const MAX_DUMMY_LEADERBOARD_POINTS = 750;
+
+function rawDummyPointsForLevels(levelsCompleted: number, seed: string) {
   const r = hashToUnitInterval(seed);
   const perLevel = 220 + Math.round(r * 120); // 220..340
   const base = levelsCompleted * perLevel;
@@ -76,26 +77,48 @@ function pointsForCompletedLevels(levelsCompleted: number, seed: string) {
   return Math.max(0, base + bonus);
 }
 
-function addDevDummyRowsIfNeeded(rows: RankedRow[], currentUserId?: string, minRows = 15): RankedRow[] {
-  // Only pad in dev builds; never touch production leaderboard.
-  if (!import.meta.env.DEV) return rows;
-  if (rows.length >= minRows) return rows;
+/** Non-top demo rows: deterministic pseudo-random points in [50, 748], always under 750. */
+function deterministicDummyPointsBelowTop(seed: string) {
+  return 50 + Math.floor(hashToUnitInterval(seed + "|below750") * 699);
+}
 
+function addDummyRowsIfNeeded(rows: RankedRow[], currentUserId?: string): RankedRow[] {
   const existingUsernames = new Set(rows.map((r) => r.username));
   const padded: RankedRow[] = [...rows];
 
-  for (let i = 0; i < DUMMY_LEADERBOARD_USERS.length && padded.length < minRows; i++) {
+  const toAdd: Array<{ index: number; def: (typeof DUMMY_LEADERBOARD_USERS)[number] }> = [];
+  for (let i = 0; i < DUMMY_LEADERBOARD_USERS.length; i++) {
     const d = DUMMY_LEADERBOARD_USERS[i];
     if (existingUsernames.has(d.username)) continue;
-    padded.push({
-      id: `dummy-${i}`,
-      username: d.username,
-      totalPoints: pointsForCompletedLevels(d.levelsCompleted, d.username),
-      levelsCompleted: d.levelsCompleted,
-      avatarUrl: makeDummyAvatarUrl(d.username),
-      isCurrentUser: false,
-      rank: 0, // assigned after sort
-    });
+    toAdd.push({ index: i, def: d });
+  }
+
+  if (toAdd.length > 0) {
+    let topWinner = 0;
+    let topRaw = rawDummyPointsForLevels(toAdd[0].def.levelsCompleted, toAdd[0].def.username);
+    for (let j = 1; j < toAdd.length; j++) {
+      const { def } = toAdd[j];
+      const raw = rawDummyPointsForLevels(def.levelsCompleted, def.username);
+      if (raw > topRaw || (raw === topRaw && def.username < toAdd[topWinner].def.username)) {
+        topRaw = raw;
+        topWinner = j;
+      }
+    }
+
+    for (let j = 0; j < toAdd.length; j++) {
+      const { index: i, def: d } = toAdd[j];
+      const totalPoints =
+        j === topWinner ? MAX_DUMMY_LEADERBOARD_POINTS : deterministicDummyPointsBelowTop(d.username);
+      padded.push({
+        id: `dummy-${i}`,
+        username: d.username,
+        totalPoints,
+        levelsCompleted: d.levelsCompleted,
+        avatarUrl: makeDummyAvatarUrl(d.username),
+        isCurrentUser: false,
+        rank: 0, // assigned after sort
+      });
+    }
   }
 
   // Re-sort and re-rank (so dummies land naturally among real users)
@@ -136,7 +159,7 @@ const Leaderboard = () => {
       rank: index + 1,
     }));
 
-    setRankedUsers(addDevDummyRowsIfNeeded(rows, profile?.id));
+    setRankedUsers(addDummyRowsIfNeeded(rows, profile?.id));
     setLoading(false);
   }, [profile?.id]);
 
