@@ -188,7 +188,7 @@ if __name__ == "__main__":
            05  KLANT-NAAM  PIC X(30).`,
         },
         {
-          title: "Optional 77 standalone",
+          title: "77 standalone",
           code: `       77  TOTAAL        PIC 9(5)V99.`,
         },
       ],
@@ -281,8 +281,8 @@ while i <= 3:
        PROCEDURE DIVISION.
            PERFORM VARYING I FROM 1 BY 1
               DISPLAY I
-           * TODO: voeg UNTIL toe (bv. UNTIL I > 3)
-           * TODO: sluit af met END-PERFORM
+           * TODO: voeg UNTIL toe
+           * TODO: sluit af
            STOP RUN.
 `,
   },
@@ -303,7 +303,7 @@ def main():
 if __name__ == "__main__":
     main()
 `,
-    docs: [{ title: "COBOL for z/OS 6.5 docs (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0" }],
+    docs: [{ title: "Repeating program actions (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0?topic=actions-repeating-program" }],
     cobolExplain: {
       text: "Paragrafen zijn named blocks in de PROCEDURE DIVISION. Je roept ze aan met `PERFORM <NAAM>`; het label eindigt met een punt.",
       examples: [
@@ -324,12 +324,9 @@ if __name__ == "__main__":
     starterCode: `       IDENTIFICATION DIVISION.
        PROGRAM-ID. PARAS.
        PROCEDURE DIVISION.
-           * TODO: roep een paragraaf aan met PERFORM <NAAM>
-           * PERFORM VERWERK
+           * TODO: roep een paragraaf aan
            STOP RUN.
-       * TODO: definieer de paragraaf label (met punt op eigen regel)
-       * VERWERK.
-       *     DISPLAY "DONE".
+       * TODO: definieer de paragraaf
 `,
   },
   {
@@ -338,16 +335,14 @@ if __name__ == "__main__":
     summary: "Leer werken met FILE STATUS en errors.",
     pythonHint:
       "Zoals het vangen van FileNotFoundError: test FILE STATUS of specifieke waarden zoals '35'.",
-    pythonCode: `# Python-idee: try/except vangt "file not found"
-
-try:
+    pythonCode: `try:
     with open("data.dat", "r") as f:
         # ... doe iets met de file ...
         pass
 except FileNotFoundError:
     print("FILE NOT FOUND")
 `,
-    docs: [{ title: "COBOL for z/OS 6.5 docs (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0" }],
+    docs: [{ title: "Checking for input or output errors (Language reference)", url: "https://www.ibm.com/docs/en/cobol-zos/6.5.0?topic=files-checking-input-output-errors" }],
     cobolExplain: {
       text: "Met `FILE STATUS` krijg je een 2-char statuscode na OPEN/READ. Een veel voorkomende leer-case is `\"35\"` = file not found.",
       examples: [
@@ -384,10 +379,7 @@ except FileNotFoundError:
        01  WS-STATUS PIC XX.
        PROCEDURE DIVISION.
            OPEN INPUT INVOER
-           * TODO: check file status 35 (file not found)
-           * IF WS-STATUS = "35"
-           *     DISPLAY "FILE NOT FOUND"
-           * END-IF
+           * TODO: check file status 35 en display "FILE NOT FOUND"
            CLOSE INVOER
            STOP RUN.
 `,
